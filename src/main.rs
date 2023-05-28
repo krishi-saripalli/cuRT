@@ -1,8 +1,5 @@
-mod window;
-
-use window::run;
+mod utils;
 
 fn main() {
-    run();
-    
+    utils::write_to_ppm("test.ppm");
 }
