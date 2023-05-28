@@ -4,10 +4,10 @@ use std::io::Write;
 use std::path::Path;
 
 //generates a random float between 0 and 1
-pub fn generate_random_number() -> f32 {
-    let mut rng = rand::thread_rng();
-    rng.gen()
-}
+// pub fn generate_random_number() -> f32 {
+//     let mut rng = rand::thread_rng();
+//     rng.gen()
+// }
 
 //later, this will take a buffer of pixels and write them to a file
 pub fn write_to_ppm(filename: &str) {
