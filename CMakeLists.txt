@@ -21,6 +21,7 @@ set(CMAKE_OSX_ARCHITECTURES "x86_64")
 # Specifies required Qt components
 find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt6 REQUIRED COMPONENTS Gui)
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
 find_package(Qt6 REQUIRED COMPONENTS Xml)
 
 # Specifies .cpp and .h files to be passed to the compiler
@@ -32,12 +33,14 @@ add_executable(${PROJECT_NAME}
     utils/sceneparser.h
     utils/scenedata.h
     utils/rgba.h
+    window/mainwindow.h
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt::Core
     Qt::Gui
     Qt::Xml
+    Qt::Widgets
 )
 
 file(GLOB EIGEN_DIR_CONTENTS ${CMAKE_CURRENT_LIST_DIR}/Eigen/*)

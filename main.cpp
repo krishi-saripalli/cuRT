@@ -3,7 +3,7 @@
 #include <Eigen/Dense>
 
 
-#include <QCoreApplication>
+#include <QApplication>
 #include <QCommandLineParser>
 #include <QImage>
 #include <QtCore>
@@ -14,11 +14,12 @@
 #include <iostream>
 #include "utils/sceneparser.h"
 #include "utils/rgba.h"
+#include "window/mainwindow.h"
 
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication a(argc, argv);
+    QApplication a(argc, argv);
 
     QCommandLineParser parser;
     parser.addHelpOption();
@@ -99,12 +100,13 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-
+    MainWindow window(width, height);
+    window.show();
 
     // Extracting data pointer from Qt's image API
-    QImage image = QImage(width, height, QImage::Format_RGBX8888);
-    image.fill(Qt::black);
-    RGBA *data = reinterpret_cast<RGBA *>(image.bits());
+    // QImage image = QImage(width, height, QImage::Format_RGBX8888);
+    // image.fill(Qt::black);
+    // RGBA *data = reinterpret_cast<RGBA *>(image.bits());
 
     // // Setting up the raytracer
     // RayTracer::Config rtConfig{};
@@ -138,5 +140,5 @@ int main(int argc, char *argv[])
     // }
 
     // a.exit();
-    return 0;
+    return a.exec();
 }
