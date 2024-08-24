@@ -1,0 +1,5 @@
+/Users/saripallikrishi/projects/raymarcher/build/CMakeFiles/raymarcher.dir
+/Users/saripallikrishi/projects/raymarcher/build/CMakeFiles/edit_cache.dir
+/Users/saripallikrishi/projects/raymarcher/build/CMakeFiles/rebuild_cache.dir
+/Users/saripallikrishi/projects/raymarcher/build/CMakeFiles/raymarcher_autogen_timestamp_deps.dir
+/Users/saripallikrishi/projects/raymarcher/build/CMakeFiles/raymarcher_autogen.dir

@@ -1,0 +1,11 @@
+{
+    "IO": {
+      "scene": "/Users/saripallikrishi/projects/raymarcher/scenefiles/intersect/unit_cube.json",
+      "output": "/Projects/projects-ray-krishi-saripalli/test.png"
+    },
+    "Canvas": {
+      "width": 1024,
+      "height": 768
+    }
+
+  }
