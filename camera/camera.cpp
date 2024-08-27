@@ -15,7 +15,6 @@ Eigen::Matrix4f Camera::getViewMatrix() const {
     Eigen::Vector3f look = cameraData.look.head<3>();
     Eigen::Vector3f up = cameraData.up.head<3>();
     Eigen::Vector3f pos = cameraData.pos.head<3>();
-    std::cout << look.transpose() << std::endl;
 
     Eigen::Vector3f w = (-look).normalized();
     Eigen::Vector3f v = (up - ((up.dot(w))*w)).normalized();
@@ -23,19 +22,18 @@ Eigen::Matrix4f Camera::getViewMatrix() const {
 
     Eigen::Matrix4f translationMatrix;
     translationMatrix << 
-                    1.0,0.0,0.0,0.0, 
-                    0.0,1.0,0.0,0.0, 
-                    0.0,0.0,1.0,0.0, 
-                    -pos[0],-pos[1],-pos[2],1.0;
+        1.0,0.0,0.0,-pos[0], 
+        0.0,1.0,0.0,-pos[1],
+        0.0,0.0,1.0,-pos[2],
+        0.0,0.0,0.0,1.0;
 
-    
     Eigen::Matrix4f rotationMatrix;
     rotationMatrix <<
-                    u[0],v[0],w[0],0.0, 
-                    u[1],v[1],w[1],0.0, 
-                    u[2],v[2],w[2],0.0, 
-                    0.0,0.0,0.0,1.0;
-
+        u[0],u[1],u[2],0.0,  // Row 1
+        v[0],v[1],v[2],0.0,  // Row 2
+        w[0],w[1],w[2],0.0,  // Row 3
+        0.0,0.0,0.0,1.0;     // Row 4
+    
     return rotationMatrix * translationMatrix;
 }
 

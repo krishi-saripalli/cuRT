@@ -19,16 +19,16 @@ void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData)
             int x = ((j+0.5f)/width) -0.5f, y = ((i+0.5f)/height) -0.5f;
 
             //Calculate the view plane dimensions (U,V) and point on view plane
-            float viewPlaneHeight = 2.f*distToViewPlane*std::tan(float(heightAngle)/2.f);
+            float viewPlaneHeight = 2.f * distToViewPlane * std::tan(float(heightAngle)/2.f);
             float viewPlaneWidth = viewPlaneHeight * aspectRatio;
-            Eigen::Vector3f pointOnPlane{viewPlaneWidth*x, viewPlaneHeight*y, -distToViewPlane};
+            Eigen::Vector3f pointOnPlane{viewPlaneWidth * x, viewPlaneHeight * y, -distToViewPlane};
 
             //Calculate ray direction
             Eigen::Vector4f p(0.f,0.f,0.f,1.f);
             Eigen::Vector4f d(pointOnPlane[0], pointOnPlane[1], pointOnPlane[2], 0.f);
 
             //Transform the ray to worldspace
-            // p = inverseViewMatrix * p;
+            p = inverseViewMatrix * p;
             d = inverseViewMatrix * d;
             d.normalize();
 
@@ -87,8 +87,8 @@ Hit Raymarcher::getClosestHit(const Scene& scene, const Eigen::Vector4f pos) {
         // std::cout << "Shape inverse CTM:\n" << inverse << std::endl;
         
         Eigen::Vector4f objectSpacePos = shapeData.ctm.inverse() * pos;
-        // std::cout << "World space pos: " << pos.transpose() << std::endl;
-        // std::cout << "Object space pos: " << objectSpacePos.transpose() << std::endl;
+        std::cout << "World space pos: " << pos.transpose() << std::endl;
+        std::cout << "Object space pos: " << objectSpacePos.transpose() << std::endl;
 
         float shapeDistance = getShapeDistance(shapeData,objectSpacePos);
 
@@ -103,10 +103,7 @@ Hit Raymarcher::getClosestHit(const Scene& scene, const Eigen::Vector4f pos) {
 }
 
 float Raymarcher::getShapeDistance(const RenderShapeData& shapeData, const Eigen::Vector4f pos) {
-    float distance = distToCube(pos.head(3),Eigen::Vector3f(.5f,.5f,.5f));
-    //  std::cout << "Shape distance: " << distance << " at position: " 
-    //           << pos.x() << ", " << pos.y() << ", " << pos.z() << std::endl;
-
+    float distance = distToSphere(pos.head(3),1.f);
     return distance;
 
 
