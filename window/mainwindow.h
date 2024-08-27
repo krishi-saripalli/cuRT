@@ -1,3 +1,5 @@
+#pragma once
+
 #include <QMainWindow>
 #include <QImage>
 #include <QLabel>

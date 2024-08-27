@@ -34,6 +34,14 @@ add_executable(${PROJECT_NAME}
     utils/scenedata.h
     utils/rgba.h
     window/mainwindow.h
+    camera/camera.cpp
+    camera/camera.h
+    raymarcher/hit.h
+    raymarcher/raymarcher.h
+    raymarcher/raymarcher.cpp
+    raymarcher/scene.h
+    raymarcher/scene.cpp
+    raymarcher/distance.h
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

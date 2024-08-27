@@ -21,6 +21,5 @@ public:
 
     const SceneGlobalData& getGlobalData() const;
 
-    // The getter of the shared pointer to the camera instance of the scene
     const Camera getCamera() const;
 };

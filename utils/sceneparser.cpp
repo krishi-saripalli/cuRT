@@ -9,9 +9,11 @@ Eigen::Matrix4f calculateCTM(std::vector<SceneTransformation*>& transformations,
     Eigen::Matrix4f new_ctm = old_ctm;
     
     for (SceneTransformation* transformation : transformations) {
+        std::cout << "hello" << std::endl;
         if (transformation->type == TransformationType::TRANSFORMATION_SCALE) {
             Eigen::Matrix4f scaleMatrix = Eigen::Matrix4f::Identity();
             scaleMatrix.block<3,3>(0,0) = Eigen::Scaling(transformation->scale[0], transformation->scale[1], transformation->scale[2]);
+            // std::cout << "Scale Matrix:\n" << scaleMatrix << std::endl;
             new_ctm = new_ctm * scaleMatrix;
 
         }
@@ -19,10 +21,12 @@ Eigen::Matrix4f calculateCTM(std::vector<SceneTransformation*>& transformations,
             Eigen::AngleAxisf rotation(transformation->angle, transformation->rotate);
             Eigen::Matrix4f rotationMatrix = Eigen::Matrix4f::Identity();
             rotationMatrix.block<3,3>(0,0) = rotation.matrix();
+            // std::cout << "rotation Matrix:\n" << rotationMatrix << std::endl;
             new_ctm = new_ctm * rotationMatrix;
         }
         else if (transformation->type == TransformationType::TRANSFORMATION_TRANSLATE) {
             Eigen::Matrix4f translateMatrix = Eigen::Affine3f(Eigen::Translation3f(transformation->translate)).matrix();
+            // std::cout << "Trans Matrix:\n" << translateMatrix << std::endl;
             new_ctm = new_ctm * translateMatrix;
         }
         else {
@@ -37,6 +41,7 @@ void dfs(RenderData &renderData, SceneNode* node, Eigen::Matrix4f ctm) {
 
     //Calculate new CTM
     Eigen::Matrix4f new_ctm = calculateCTM(node->transformations, ctm);
+    // std::cout << "Shape CTM:\n" << new_ctm << std::endl;
 
     //Construct RenderShapeData for each primitive
     for (ScenePrimitive* primitive : node->primitives) {

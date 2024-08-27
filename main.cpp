@@ -15,6 +15,7 @@
 #include "utils/sceneparser.h"
 #include "utils/rgba.h"
 #include "window/mainwindow.h"
+#include "raymarcher/raymarcher.h"
 
 
 int main(int argc, char *argv[])
@@ -101,12 +102,13 @@ int main(int argc, char *argv[])
     }
 
     MainWindow window(width, height);
+    
     window.show();
 
     // Extracting data pointer from Qt's image API
-    // QImage image = QImage(width, height, QImage::Format_RGBX8888);
-    // image.fill(Qt::black);
-    // RGBA *data = reinterpret_cast<RGBA *>(image.bits());
+    QImage image = QImage(width, height, QImage::Format_RGBX8888);
+    image.fill(Qt::black);
+    RGBA *data = reinterpret_cast<RGBA *>(image.bits());
 
     // // Setting up the raytracer
     // RayTracer::Config rtConfig{};
@@ -120,24 +122,24 @@ int main(int argc, char *argv[])
     // rtConfig.enableAcceleration  = settings.value("Feature/acceleration").toBool();
     // rtConfig.enableDepthOfField  = settings.value("Feature/depthoffield").toBool();
 
-    // RayTracer raytracer{ rtConfig };
+    Raymarcher raymarcher{};
 
-    // RayTraceScene rtScene{ width, height, metaData };
+    const Scene scene{ width, height, metaData };
 
     // // Note that we're passing `data` as a pointer (to its first element)
     // // Recall from Lab 1 that you can access its elements like this: `data[i]`
-    // raytracer.render(data, rtScene);
+    raymarcher.render(scene, window, data);
 
     // // Saving the image
-    // success = image.save(oImagePath);
-    // if (!success) {
-    //     success = image.save(oImagePath, "PNG");
-    // }
-    // if (success) {
-    //     std::cout << "Saved rendered image to \"" << oImagePath.toStdString() << "\"" << std::endl;
-    // } else {
-    //     std::cerr << "Error: failed to save image to \"" << oImagePath.toStdString() << "\"" << std::endl;
-    // }
+    success = image.save(oImagePath);
+    if (!success) {
+        success = image.save(oImagePath, "PNG");
+    }
+    if (success) {
+        std::cout << "Saved rendered image to \"" << oImagePath.toStdString() << "\"" << std::endl;
+    } else {
+        std::cerr << "Error: failed to save image to \"" << oImagePath.toStdString() << "\"" << std::endl;
+    }
 
     // a.exit();
     return a.exec();

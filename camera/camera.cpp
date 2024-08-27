@@ -12,12 +12,13 @@ void Camera::init(SceneCameraData cData) {
 
 Eigen::Matrix4f Camera::getViewMatrix() const {
 
-    Eigen::Vector3f look = Eigen::Vector3f{cameraData.look};
-    Eigen::Vector3f up = Eigen::Vector3f{cameraData.up};
-    Eigen::Vector3f pos = Eigen::Vector3f{cameraData.pos};
+    Eigen::Vector3f look = cameraData.look.head<3>();
+    Eigen::Vector3f up = cameraData.up.head<3>();
+    Eigen::Vector3f pos = cameraData.pos.head<3>();
+    std::cout << look.transpose() << std::endl;
 
-    Eigen::Vector3f w = (-look)/look.norm();
-    Eigen::Vector3f v = (up - ((up.dot(w))*w))/((up - ((up.dot(w))*w)).norm());
+    Eigen::Vector3f w = (-look).normalized();
+    Eigen::Vector3f v = (up - ((up.dot(w))*w)).normalized();
     Eigen::Vector3f u = v.cross(w);
 
     Eigen::Matrix4f translationMatrix;
