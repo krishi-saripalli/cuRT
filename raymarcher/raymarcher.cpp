@@ -12,16 +12,16 @@ void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData)
     Eigen::Matrix4f inverseViewMatrix = scene.getCamera().getViewMatrix().inverse();
 
 
-    for (int i=0; i < width; i++)  {
-        for (int j=0; j < height; j++) {
+    for (int col=0; col < width; col++)  {
+        for (int row=0; row < height; row++) {
 
             //Calculate the center of the pixel in normalize image space coordinates
-            float x = ((j+0.5f)/width) - 0.5f, y = ((i+0.5f)/height) - 0.5f;
+            float x = ((col+0.5f)/width) - 0.5f, y = ((row+0.5f)/height) - 0.5f;
 
             //Calculate the view plane dimensions (U,V) and point on view plane
             float viewPlaneHeight = 2.f * distToViewPlane * std::tan(float(heightAngle)/2.f);
             float viewPlaneWidth = viewPlaneHeight * aspectRatio;
-            Eigen::Vector3f pointOnPlane{viewPlaneWidth * x, viewPlaneHeight * y, -distToViewPlane};
+            Eigen::Vector3f pointOnPlane{viewPlaneWidth * x, viewPlaneHeight * y, -1.f * distToViewPlane};
 
             //Calculate ray direction
             Eigen::Vector4f p(0.f,0.f,0.f,1.f);
@@ -32,10 +32,11 @@ void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData)
             d = inverseViewMatrix * d;
             d.normalize();
 
-            int index = j*scene.c_width +i;
+
+            int index = row*scene.c_width + col;
             RGBA originalColor = imageData[index];
             imageData[index] = marchRay(scene,originalColor,p,d);
-            window.updatePixel(i,j,imageData[index]); 
+            window.updatePixel(col,row,imageData[index]); 
         }
 
     }
@@ -47,7 +48,7 @@ void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData)
 RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, Eigen::Vector4f p, Eigen::Vector4f d) {
     
     float distTravelled = 0.f;
-    const int NUMBER_OF_STEPS = 1000;
+    const int NUMBER_OF_STEPS = 10000;
     const float EPSILON = 0.001;
     const float MAX_DISTANCE = 100.0;
 
@@ -95,7 +96,7 @@ Hit Raymarcher::getClosestHit(const Scene& scene, const Eigen::Vector4f pos) {
 
 float Raymarcher::getShapeDistance(const RenderShapeData& shapeData, const Eigen::Vector4f pos) {
     const float SPHERE_RADIUS = 0.5f;
-    // float distance = distToSphere(pos.head(3),SPHERE_RADIUS);
+    //float distance = distToSphere(pos.head(3),SPHERE_RADIUS);
     float distance = distToCube(pos.head(3),Eigen::Vector3f(.5f,.5f,.5f));
     return distance;
 
