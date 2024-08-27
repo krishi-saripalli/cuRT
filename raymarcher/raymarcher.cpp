@@ -16,7 +16,7 @@ void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData)
         for (int j=0; j < height; j++) {
 
             //Calculate the center of the pixel in normalize image space coordinates
-            int x = ((j+0.5f)/width) -0.5f, y = ((i+0.5f)/height) -0.5f;
+            float x = ((j+0.5f)/width) -0.5f, y = ((i+0.5f)/height) -0.5f;
 
             //Calculate the view plane dimensions (U,V) and point on view plane
             float viewPlaneHeight = 2.f * distToViewPlane * std::tan(float(heightAngle)/2.f);
@@ -47,7 +47,7 @@ void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData)
 RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, Eigen::Vector4f p, Eigen::Vector4f d) {
     
     float distTravelled = 0.f;
-    const int NUMBER_OF_STEPS = 100000;
+    const int NUMBER_OF_STEPS = 100;
     const float EPSILON = 0.001;
     const float MAX_DISTANCE = 100.0;
 
@@ -63,6 +63,7 @@ RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, Eigen::V
 
 
         if (closestHit.distance <= EPSILON) {
+            //std::cout << closestHit.distance << std::endl;
             
             return RGBA{255,0,0};
         }
@@ -87,8 +88,8 @@ Hit Raymarcher::getClosestHit(const Scene& scene, const Eigen::Vector4f pos) {
         // std::cout << "Shape inverse CTM:\n" << inverse << std::endl;
         
         Eigen::Vector4f objectSpacePos = shapeData.ctm.inverse() * pos;
-        std::cout << "World space pos: " << pos.transpose() << std::endl;
-        std::cout << "Object space pos: " << objectSpacePos.transpose() << std::endl;
+        //std::cout << "World space pos: " << pos.transpose() << std::endl;
+        //std::cout << "Object space pos: " << objectSpacePos.transpose() << std::endl;
 
         float shapeDistance = getShapeDistance(shapeData,objectSpacePos);
 
