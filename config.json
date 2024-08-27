@@ -1,6 +1,6 @@
 {
     "IO": {
-      "scene": "/Users/saripallikrishi/projects/raymarcher/scenefiles/intersect/unit_sphere.json",
+      "scene": "/Users/saripallikrishi/projects/raymarcher/scenefiles/intersect/unit_cube.json",
       "output": "/Users/saripallikrishi/projects/raymarcher/output/test.png"
     },
     "Canvas": {

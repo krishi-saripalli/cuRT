@@ -7,5 +7,5 @@ inline float distToCube(const Eigen::Vector3f pos, const Eigen::Vector3f b) {
 }
 
 inline float distToSphere(const Eigen::Vector3f& pos, float radius) {
-    return (pos - Eigen::Vector3f(0.f,0.f,0.f)).norm() - radius;
+    return (pos).norm() - radius;
 }
