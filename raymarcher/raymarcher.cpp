@@ -61,10 +61,16 @@ RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, Eigen::V
 
         distTravelled += closestHit.distance;
 
+        
 
         if (closestHit.distance <= EPSILON) {
+            
             Eigen::Vector3f normal = closestHit.normal;
-            return RGBA{(std::uint8_t)(255.f*normal.x()),(std::uint8_t)(255.f*normal.y()),(std::uint8_t)(255.f*normal.z())};
+            return RGBA{
+                (std::uint8_t)(255.f * (normal.x() + 1.f) / 2.f),  // Shift x to [0, 1] and convert
+                (std::uint8_t)(255.f * (normal.y() + 1.f) / 2.f),  // Shift y to [0, 1] and convert
+                (std::uint8_t)(255.f * (normal.z() + 1.f) / 2.f)   // Shift z to [0, 1] and convert
+            };
         }
 
         if (distTravelled > MAX_DISTANCE) break; 

@@ -8,14 +8,12 @@ struct Hit {
 };
 
 inline Eigen::Vector3f getNormal(const RenderShapeData& shapeData, const Eigen::Vector3f& p) {
-    //Using the centered finite difference, we calculate the gradient of the distance function
     const float h = 0.0001f;
-    float dx = shapeData.primitive.distance(p + Eigen::Vector3f(h,0.f,0.f)) - shapeData.primitive.distance(p - Eigen::Vector3f(h,0.f,0.f));
-    float dy = shapeData.primitive.distance(p + Eigen::Vector3f(0.f,h,0.f)) - shapeData.primitive.distance(p - Eigen::Vector3f(0.f,h,0.f));
-    float dz = shapeData.primitive.distance(p + Eigen::Vector3f(0.f,0.f,h)) - shapeData.primitive.distance(p - Eigen::Vector3f(0.f,0.f,h));
+    const Eigen::Vector2f k(1.0f, -1.0f);
 
-    Eigen::Vector3f normal = Eigen::Vector3f(dx,dy,dz).normalized();
-    return normal;
-
-
+    return (Eigen::Vector3f(k.x(), k.y(), k.y()) * shapeData.primitive.distance(p + h * Eigen::Vector3f(k.x(), k.y(), k.y())) +
+            Eigen::Vector3f(k.y(), k.y(), k.x()) * shapeData.primitive.distance(p + h * Eigen::Vector3f(k.y(), k.y(), k.x())) +
+            Eigen::Vector3f(k.y(), k.x(), k.y()) * shapeData.primitive.distance(p + h * Eigen::Vector3f(k.y(), k.x(), k.y())) +
+            Eigen::Vector3f(k.x(), k.x(), k.x()) * shapeData.primitive.distance(p + h * Eigen::Vector3f(k.x(), k.x(), k.x())))
+           .normalized();
 }
