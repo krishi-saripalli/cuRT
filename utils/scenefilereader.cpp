@@ -1,11 +1,13 @@
 #include "scenefilereader.h"
 #include "scenedata.h"
+#include "../raymarcher/distance.h"
 
 
 #include <cassert>
 #include <cstring>
 #include <iostream>
 #include <filesystem>
+
 
 #include <QFile>
 #include <QJsonArray>
@@ -830,26 +832,30 @@ bool ScenefileReader::parsePrimitive(const QJsonObject &prim, SceneNode *node) {
     std::string primType = prim["type"].toString().toStdString();
 
     // Default primitive
-    ScenePrimitive *primitive = new ScenePrimitive();
-    SceneMaterial &mat = primitive->material;
-    mat.clear();
-    primitive->type = PrimitiveType::PRIMITIVE_CUBE;
-    mat.textureMap.isUsed = false;
-    mat.bumpMap.isUsed = false;
-    mat.cDiffuse[0] = mat.cDiffuse[2] = mat.cDiffuse[3] = 1;
-    node->primitives.push_back(primitive);
+    ScenePrimitive *primitive;
 
     std::filesystem::path basepath = std::filesystem::path(file_name).parent_path().parent_path();
-    if (primType == "sphere")
+    if (primType == "sphere") {
+        primitive = new ScenePrimitive(distToSphere);
         primitive->type = PrimitiveType::PRIMITIVE_SPHERE;
-    else if (primType == "cube")
+    } 
+    else if (primType == "cube") {
+        primitive = new ScenePrimitive(distToCube);
         primitive->type = PrimitiveType::PRIMITIVE_CUBE;
-    else if (primType == "cylinder")
+    }   
+    else if (primType == "cylinder") {
+        primitive = new ScenePrimitive(distToCylinder);
         primitive->type = PrimitiveType::PRIMITIVE_CYLINDER;
-    else if (primType == "cone")
+    }
+    else if (primType == "cone") {
+        primitive = new ScenePrimitive(distToCone);
         primitive->type = PrimitiveType::PRIMITIVE_CONE;
+    } 
     else if (primType == "mesh") {
         primitive->type = PrimitiveType::PRIMITIVE_MESH;
+        primitive = new ScenePrimitive(nullptr);
+        std::cout << "SDF for Mesh Primitive Needs to Be Implemented" << std::endl;
+        return false;
         if (!prim.contains("meshFile")) {
             std::cout << "primitive type mesh must contain field meshFile" << std::endl;
             return false;
@@ -866,6 +872,14 @@ bool ScenefileReader::parsePrimitive(const QJsonObject &prim, SceneNode *node) {
         std::cout << "unknown primitive type \"" << primType << "\"" << std::endl;
         return false;
     }
+
+    SceneMaterial &mat = primitive->material;
+    mat.clear();
+    primitive->type = PrimitiveType::PRIMITIVE_CUBE;
+    mat.textureMap.isUsed = false;
+    mat.bumpMap.isUsed = false;
+    mat.cDiffuse[0] = mat.cDiffuse[2] = mat.cDiffuse[3] = 1;
+    node->primitives.push_back(primitive);
 
     if (prim.contains("ambient")) {
         if (!prim["ambient"].isArray()) {

@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <functional>
 
 #include <Eigen/Dense>
 
@@ -143,10 +144,21 @@ struct SceneMaterial {
 };
 
 // Struct which contains data for a single primitive in a scene
+using DistanceFunction = std::function<float(const Eigen::Vector3f& p)>;
+
 struct ScenePrimitive {
     PrimitiveType type;
     SceneMaterial material;
     std::string meshfile; // Used for triangle meshes
+
+    private:
+        DistanceFunction distanceFunction;
+    public:
+    ScenePrimitive(DistanceFunction f) : distanceFunction(std::move(f)) {};
+    
+    float distance(const Eigen::Vector3f& p) const {
+        return distanceFunction(p);
+    }
 };
 
 // Struct which contains data for a transformation.

@@ -94,14 +94,7 @@ Hit Raymarcher::getClosestHit(const Scene& scene, const Eigen::Vector4f pos) {
 }
 
 float Raymarcher::getShapeDistance(const RenderShapeData& shapeData, const Eigen::Vector4f pos) {
-    const float SPHERE_RADIUS = 0.5f;
-    //float distance = distToSphere(pos.head(3),SPHERE_RADIUS);
-    //float distance = distToCube(pos.head(3),Eigen::Vector3f(.5f,.5f,.5f));
-    float distance = distToCone(pos.head(3),1.0f,0.5f);
-    return distance;
-
-
-
+    return shapeData.primitive.distance(pos.head(3));
 }
 
 
