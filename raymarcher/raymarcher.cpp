@@ -16,7 +16,7 @@ void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData)
         for (int row=0; row < height; row++) {
 
             //Calculate the center of the pixel in normalize image space coordinates
-            float x = ((col+0.5f)/width) - 0.5f, y = ((height - 1 - row+0.5f)/height) - 0.5f;
+            float x = ((col+0.5f)/width) - 0.5f, y = ((height - 1.f - row+0.5f)/height) - 0.5f;
 
             //Calculate the view plane dimensions (U,V) and point on view plane
             float viewPlaneHeight = 2.f * distToViewPlane * std::tan(.5f*float(heightAngle));
@@ -47,7 +47,7 @@ void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData)
 RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, Eigen::Vector4f p, Eigen::Vector4f d) {
     
     float distTravelled = 0.f;
-    const int NUMBER_OF_STEPS = 10000;
+    const int NUMBER_OF_STEPS = 100;
     const float EPSILON = 0.001;
     const float MAX_DISTANCE = 100.0;
 
