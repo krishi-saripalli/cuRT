@@ -18,14 +18,15 @@ inline float distToCone(const Eigen::Vector3f& p, float h = 1.0f, float r = 0.5f
     float angle = std::atan2(r, h);
     const Eigen::Vector2f c(std::sin(angle), std::cos(angle));
 
-    //Translate such that cone apex is at (0.0, 0.5, 0.0)
+    //Translate such that cone apex is at (0.0, 0.5, 0.0) by subtraction
+    Eigen::Vector3f pTranslated = p - Eigen::Vector3f(0.0f,0.5f,0.0f);
     
 
     // q is the point at the base in 2D
     Eigen::Vector2f q = h * Eigen::Vector2f(c.x() / c.y(), -1.0f);
     
     // w is (length of p.xz, p.y)
-    Eigen::Vector2f w(Eigen::Vector2f(p.x(), p.z()).norm(), p.y());
+    Eigen::Vector2f w(Eigen::Vector2f(pTranslated.x(), pTranslated.z()).norm(), pTranslated.y());
     
     // Calculate a
     float dot_wq = w.dot(q);
