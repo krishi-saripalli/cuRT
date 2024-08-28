@@ -63,7 +63,8 @@ RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, Eigen::V
 
 
         if (closestHit.distance <= EPSILON) {
-            return RGBA{255,0,0};
+            Eigen::Vector3f normal = closestHit.normal;
+            return RGBA{(std::uint8_t)(255.f*normal.x()),(std::uint8_t)(255.f*normal.y()),(std::uint8_t)(255.f*normal.z())};
         }
 
         if (distTravelled > MAX_DISTANCE) break; 
@@ -74,12 +75,13 @@ RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, Eigen::V
 Hit Raymarcher::getClosestHit(const Scene& scene, const Eigen::Vector4f pos) {
 
     float minDistance = __FLT_MAX__;
+    Eigen::Vector4f objectSpacePos;
     Hit closestHit{nullptr, minDistance};
 
     for ( const RenderShapeData& shapeData : scene.metaData.shapes) {
 
         //Transform our position to object space using the shape's inverse CTM
-        Eigen::Vector4f objectSpacePos = shapeData.ctm.inverse() * pos;
+        objectSpacePos = shapeData.ctm.inverse() * pos;
 
         float shapeDistance = getShapeDistance(shapeData,objectSpacePos);
 
@@ -89,6 +91,9 @@ Hit Raymarcher::getClosestHit(const Scene& scene, const Eigen::Vector4f pos) {
         }
 
     }
+    //Store the normal of the point
+    objectSpacePos = (closestHit.shapeData->ctm.inverse()* pos);
+    closestHit.normal = getNormal(*(closestHit.shapeData),objectSpacePos.head(3));
     return closestHit;
 
 }

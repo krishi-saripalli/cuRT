@@ -1,6 +1,6 @@
 {
     "IO": {
-      "scene": "/Users/saripallikrishi/projects/raymarcher/scenefiles/intersect/unit_cylinder.json",
+      "scene": "/Users/saripallikrishi/projects/raymarcher/scenefiles/intersect/unit_cone.json",
       "output": "/Users/saripallikrishi/projects/raymarcher/output/test.png"
     },
     "Canvas": {
