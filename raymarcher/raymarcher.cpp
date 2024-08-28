@@ -16,21 +16,20 @@ void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData)
         for (int row=0; row < height; row++) {
 
             //Calculate the center of the pixel in normalize image space coordinates
-            float x = ((col+0.5f)/width) - 0.5f, y = ((row+0.5f)/height) - 0.5f;
+            float x = ((col+0.5f)/width) - 0.5f, y = ((height - 1 - row+0.5f)/height) - 0.5f;
 
             //Calculate the view plane dimensions (U,V) and point on view plane
-            float viewPlaneHeight = 2.f * distToViewPlane * std::tan(float(heightAngle)/2.f);
+            float viewPlaneHeight = 2.f * distToViewPlane * std::tan(.5f*float(heightAngle));
             float viewPlaneWidth = viewPlaneHeight * aspectRatio;
             Eigen::Vector3f pointOnPlane{viewPlaneWidth * x, viewPlaneHeight * y, -1.f * distToViewPlane};
 
             //Calculate ray direction
             Eigen::Vector4f p(0.f,0.f,0.f,1.f);
-            Eigen::Vector4f d(pointOnPlane[0], pointOnPlane[1], pointOnPlane[2], 0.f);
+            Eigen::Vector4f d(pointOnPlane.x(), pointOnPlane.y(), pointOnPlane.z(), 0.f);
 
             //Transform the ray to worldspace
             p = inverseViewMatrix * p;
             d = inverseViewMatrix * d;
-            d.normalize();
 
 
             int index = row*scene.c_width + col;
@@ -97,7 +96,8 @@ Hit Raymarcher::getClosestHit(const Scene& scene, const Eigen::Vector4f pos) {
 float Raymarcher::getShapeDistance(const RenderShapeData& shapeData, const Eigen::Vector4f pos) {
     const float SPHERE_RADIUS = 0.5f;
     //float distance = distToSphere(pos.head(3),SPHERE_RADIUS);
-    float distance = distToCube(pos.head(3),Eigen::Vector3f(.5f,.5f,.5f));
+    //float distance = distToCube(pos.head(3),Eigen::Vector3f(.5f,.5f,.5f));
+    float distance = distToCone(pos.head(3),1.0f,0.5f);
     return distance;
 
 
