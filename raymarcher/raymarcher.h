@@ -13,9 +13,9 @@ class Raymarcher {
 
     private:
 
-    RGBA marchRay(const Scene& scene, const RGBA originalColor, Eigen::Vector4f p, Eigen::Vector4f d);
-    Hit getClosestHit(const Scene& scene, const Eigen::Vector4f pos);
-    float getShapeDistance(const RenderShapeData& shapeData, const Eigen::Vector4f pos);
+    RGBA marchRay(const Scene& scene, const RGBA originalColor, const Eigen::Vector4f& p, const Eigen::Vector4f& d);
+    Hit getClosestHit(const Scene& scene, const Eigen::Vector4f& pos);
+    float getShapeDistance(const RenderShapeData& shapeData, const Eigen::Vector4f& pos);
 
 
 

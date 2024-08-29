@@ -44,7 +44,7 @@ void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData)
     
 }
 
-RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, Eigen::Vector4f p, Eigen::Vector4f d) {
+RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, const Eigen::Vector4f& p, const Eigen::Vector4f& d) {
     
     float distTravelled = 0.f;
     const int NUMBER_OF_STEPS = 100;
@@ -78,7 +78,7 @@ RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, Eigen::V
     return originalColor;  
 }
 
-Hit Raymarcher::getClosestHit(const Scene& scene, const Eigen::Vector4f pos) {
+Hit Raymarcher::getClosestHit(const Scene& scene, const Eigen::Vector4f& pos) {
 
     float minDistance = __FLT_MAX__;
     Eigen::Vector4f objectSpacePos;
@@ -104,7 +104,7 @@ Hit Raymarcher::getClosestHit(const Scene& scene, const Eigen::Vector4f pos) {
 
 }
 
-float Raymarcher::getShapeDistance(const RenderShapeData& shapeData, const Eigen::Vector4f pos) {
+float Raymarcher::getShapeDistance(const RenderShapeData& shapeData, const Eigen::Vector4f& pos) {
     return shapeData.primitive.distance(pos.head(3));
 }
 
