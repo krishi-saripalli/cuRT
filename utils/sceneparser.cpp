@@ -4,48 +4,43 @@
 #include <chrono>
 #include <iostream>
 
-Eigen::Matrix4f calculateCTM(std::vector<SceneTransformation*>& transformations, Eigen::Matrix4f old_ctm) {
+Eigen::Matrix4f calculateCTM(std::vector<SceneTransformation*>& transformations, Eigen::Matrix4f& parentTransform) {
 
-    Eigen::Matrix4f new_ctm = old_ctm;
+    Eigen::Matrix4f ctm = parentTransform; // Start with the parent transform
     
-    for (SceneTransformation* transformation : transformations) {
-        if (transformation->type == TransformationType::TRANSFORMATION_SCALE) {
-            Eigen::Matrix4f scaleMatrix = Eigen::Matrix4f::Identity();
-            scaleMatrix.block<3,3>(0,0) = Eigen::Scaling(transformation->scale[0], transformation->scale[1], transformation->scale[2]);
-            // std::cout << "Scale Matrix:\n" << scaleMatrix << std::endl;
-            new_ctm = new_ctm * scaleMatrix;
-
+    for (const SceneTransformation* transformation : transformations) {
+        Eigen::Matrix4f transformMatrix = Eigen::Matrix4f::Identity();
+        
+        switch (transformation->type) {
+            case TransformationType::TRANSFORMATION_SCALE:
+                transformMatrix.block<3,3>(0,0) = Eigen::Scaling(transformation->scale.x(), transformation->scale.y(), transformation->scale.z());
+                break;
+            case TransformationType::TRANSFORMATION_ROTATE:
+                transformMatrix.block<3,3>(0,0) = Eigen::AngleAxisf(transformation->angle, transformation->rotate).matrix();
+                break;
+            case TransformationType::TRANSFORMATION_TRANSLATE:
+                transformMatrix.block<3,1>(0,3) = transformation->translate;
+                break;
+            default:
+                transformMatrix = transformation->matrix;
+                break;
         }
-        else if (transformation->type == TransformationType::TRANSFORMATION_ROTATE) {
-            Eigen::AngleAxisf rotation(transformation->angle, transformation->rotate);
-            Eigen::Matrix4f rotationMatrix = Eigen::Matrix4f::Identity();
-            rotationMatrix.block<3,3>(0,0) = rotation.matrix();
-            // std::cout << "rotation Matrix:\n" << rotationMatrix << std::endl;
-            new_ctm = new_ctm * rotationMatrix;
-        }
-        else if (transformation->type == TransformationType::TRANSFORMATION_TRANSLATE) {
-            Eigen::Matrix4f translateMatrix = Eigen::Affine3f(Eigen::Translation3f(transformation->translate)).matrix();
-            // std::cout << "Trans Matrix:\n" << translateMatrix << std::endl;
-            new_ctm = new_ctm * translateMatrix;
-        }
-        else {
-            new_ctm = new_ctm * transformation->matrix;
-        }
-
+        
+        ctm = transformMatrix * ctm;
     }
-    return new_ctm;
+    
+    return ctm;
 }
 
 void dfs(RenderData &renderData, SceneNode* node, Eigen::Matrix4f ctm) {
 
     //Calculate new CTM
     Eigen::Matrix4f new_ctm = calculateCTM(node->transformations, ctm);
-    // std::cout << "Shape CTM:\n" << new_ctm << std::endl;
 
     //Construct RenderShapeData for each primitive
     for (ScenePrimitive* primitive : node->primitives) {
 
-        RenderShapeData shape_data{ *primitive, new_ctm};
+        RenderShapeData shape_data{ *primitive, new_ctm, new_ctm.inverse()};
         renderData.shapes.push_back(shape_data);
     }
 

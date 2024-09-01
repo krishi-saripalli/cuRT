@@ -8,6 +8,7 @@
 struct RenderShapeData {
     ScenePrimitive primitive;
     Eigen::Matrix4f ctm; // the cumulative transformation matrix
+    Eigen::Matrix4f inverseCtm;
 };
 
 // Struct which contains all the data needed to render a scene
