@@ -18,6 +18,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_OSX_ARCHITECTURES "x86_64")
 
+#Find OpenMP
+find_package(OpenMP)
+
 # Specifies required Qt components
 find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt6 REQUIRED COMPONENTS Gui)
@@ -49,6 +52,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt::Gui
     Qt::Xml
     Qt::Widgets
+    OpenMP::OpenMP_CXX
 )
 
 file(GLOB EIGEN_DIR_CONTENTS ${CMAKE_CURRENT_LIST_DIR}/Eigen/*)

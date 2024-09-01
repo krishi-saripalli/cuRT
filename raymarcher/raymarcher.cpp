@@ -3,6 +3,7 @@
 #include <raymarcher/distance.h>
 #include <utils/rgba.h>
 #include <iostream>
+#include <omp.h>
 
 
 void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData) {
@@ -11,7 +12,7 @@ void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData)
     float heightAngle = scene.getCamera().getHeightAngle();
     Eigen::Matrix4f inverseViewMatrix = scene.getCamera().getViewMatrix().inverse();
 
-
+    #pragma omp parallel for
     for (int col=0; col < width; col++)  {
         for (int row=0; row < height; row++) {
 
@@ -47,9 +48,9 @@ void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData)
 RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, const Eigen::Vector4f& p, const Eigen::Vector4f& d) {
     
     float distTravelled = 0.f;
-    const int NUMBER_OF_STEPS = 100;
-    const float EPSILON = 0.001;
-    const float MAX_DISTANCE = 100.0;
+    const int NUMBER_OF_STEPS = 1000;
+    const float EPSILON = 0.001f;
+    const float MAX_DISTANCE = 1000.0f;
 
     for (int i = 0; i < NUMBER_OF_STEPS; ++i) {
 
@@ -66,10 +67,12 @@ RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, const Ei
         if (closestHit.distance <= EPSILON) {
             
             Eigen::Vector3f normal = closestHit.normal;
+
+            // Shift normal values from [-1,1] to [0,1]
             return RGBA{
-                (std::uint8_t)(255.f * (normal.x() + 1.f) / 2.f),  // Shift x to [0, 1] and convert
-                (std::uint8_t)(255.f * (normal.y() + 1.f) / 2.f),  // Shift y to [0, 1] and convert
-                (std::uint8_t)(255.f * (normal.z() + 1.f) / 2.f)   // Shift z to [0, 1] and convert
+                (std::uint8_t)(255.f * (normal.x() + 1.f) / 2.f),  
+                (std::uint8_t)(255.f * (normal.y() + 1.f) / 2.f), 
+                (std::uint8_t)(255.f * (normal.z() + 1.f) / 2.f)
             };
         }
 
@@ -99,7 +102,7 @@ Hit Raymarcher::getClosestHit(const Scene& scene, const Eigen::Vector4f& pos) {
     }
     //Store the normal of the point
     objectSpacePos = (closestHit.shapeData->ctm.inverse()* pos);
-    closestHit.normal = getNormal(*(closestHit.shapeData),objectSpacePos.head(3));
+    closestHit.normal = calculateNormal(*(closestHit.shapeData),objectSpacePos.head(3));
     return closestHit;
 
 }

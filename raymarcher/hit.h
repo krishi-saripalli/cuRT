@@ -7,7 +7,8 @@ struct Hit {
     Eigen::Vector3f normal;
 };
 
-inline Eigen::Vector3f getNormal(const RenderShapeData& shapeData, const Eigen::Vector3f& p) {
+// Uses the tetrahedral method for finite difference calculation (https://iquilezles.org/articles/normalsSDF/)
+inline Eigen::Vector3f calculateNormal(const RenderShapeData& shapeData, const Eigen::Vector3f& p) {
     const float h = 0.0001f;
     const Eigen::Vector2f k(1.0f, -1.0f);
 

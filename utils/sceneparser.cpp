@@ -9,7 +9,6 @@ Eigen::Matrix4f calculateCTM(std::vector<SceneTransformation*>& transformations,
     Eigen::Matrix4f new_ctm = old_ctm;
     
     for (SceneTransformation* transformation : transformations) {
-        std::cout << "hello" << std::endl;
         if (transformation->type == TransformationType::TRANSFORMATION_SCALE) {
             Eigen::Matrix4f scaleMatrix = Eigen::Matrix4f::Identity();
             scaleMatrix.block<3,3>(0,0) = Eigen::Scaling(transformation->scale[0], transformation->scale[1], transformation->scale[2]);
