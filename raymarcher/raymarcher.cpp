@@ -8,7 +8,7 @@
 
 void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData) {
 
-    float width = scene.c_width, height = scene.c_height, distToViewPlane = 1.0f, aspectRatio = scene.getCamera().getAspectRatio(width,height);
+    float width = scene.c_width, height = scene.c_height, distToViewPlane = 0.1f, aspectRatio = scene.getCamera().getAspectRatio(width,height);
     float heightAngle = scene.getCamera().getHeightAngle();
     Eigen::Matrix4f inverseViewMatrix = scene.getCamera().getViewMatrix().inverse();
 
@@ -48,8 +48,8 @@ void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData)
 RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, const Eigen::Vector4f& p, const Eigen::Vector4f& d) {
     
     float distTravelled = 0.f;
-    const int NUMBER_OF_STEPS = 10000;
-    const float EPSILON = 0.00001f;
+    const int NUMBER_OF_STEPS = 1000;
+    const float EPSILON = 1e-4;
     const float MAX_DISTANCE = 1000.0f;
 
     for (int i = 0; i < NUMBER_OF_STEPS; ++i) {
