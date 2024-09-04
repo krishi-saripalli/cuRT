@@ -14,12 +14,14 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
-
 set(CMAKE_OSX_ARCHITECTURES "x86_64")
 
-#Find OpenMP
+
+#OpenMP
 find_package(OpenMP)
+
+#Vulkan
+find_package(Vulkan REQUIRED)
 
 # Specifies required Qt components
 find_package(Qt6 REQUIRED COMPONENTS Core)
@@ -45,6 +47,7 @@ add_executable(${PROJECT_NAME}
     raymarcher/scene.h
     raymarcher/scene.cpp
     raymarcher/distance.h
+
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -53,6 +56,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt::Xml
     Qt::Widgets
     OpenMP::OpenMP_CXX
+    Vulkan::Vulkan
+
 )
 
 file(GLOB EIGEN_DIR_CONTENTS ${CMAKE_CURRENT_LIST_DIR}/Eigen/*)
@@ -61,9 +66,16 @@ if(EIGEN_DIR_SIZE EQUAL 0)
     message(FATAL_ERROR "Eigen dependency not pulled, please run `git submodule update --init --recursive`")
 endif()
 
+file(GLOB GLFW_DIR_CONTENTS ${CMAKE_CURRENT_LIST_DIR}/glfw/*)
+list(LENGTH GLFW_DIR_CONTENTS GLFW_DIR_SIZE)
+if(GLFW_DIR_SIZE EQUAL 0)
+    message(FATAL_ERROR "glfw dependency not pulled, please run `git submodule update --init --recursive`")
+endif()
+
 # This allows you to `#include <Eigen/...>`
 target_include_directories(${PROJECT_NAME} PRIVATE
     Eigen
+    glfw
 )
 
 # Set this flag to silence warnings on Windows

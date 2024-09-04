@@ -1,6 +1,7 @@
 //To build, cd into build dir and run cmake -DCMAKE_PREFIX_PATH=/Users/saripallikrishi/Qt/6.2.4/macos ..
 #include <iostream>
 #include <Eigen/Dense>
+#include <glfw/include/GLFW/glfw3.h>
 
 
 #include <QApplication>

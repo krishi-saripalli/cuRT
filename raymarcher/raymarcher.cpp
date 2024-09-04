@@ -32,7 +32,6 @@ void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData)
             p = inverseViewMatrix * p;
             d = inverseViewMatrix * d;
 
-
             int index = row*scene.c_width + col;
             RGBA originalColor = imageData[index];
             imageData[index] = marchRay(scene,originalColor,p,d);
