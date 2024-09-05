@@ -3,16 +3,25 @@
 #include <raymarcher/distance.h>
 #include <utils/rgba.h>
 #include <iostream>
-#include <omp.h>
+// #include <omp.h>
 
+Raymarcher::Raymarcher(Window window) : window(std::make_unique<Window>(std::move(window))) {
+    
+}
 
-void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData) {
+void Raymarcher::run() {
+    std::cout << window << std::endl;
+    while(!(*window).shouldClose()) {
+        glfwPollEvents();
+    }
+}
+void Raymarcher::render(const Scene& scene, RGBA *imageData) {
 
     float width = scene.c_width, height = scene.c_height, distToViewPlane = 0.1f, aspectRatio = scene.getCamera().getAspectRatio(width,height);
     float heightAngle = scene.getCamera().getHeightAngle();
     Eigen::Matrix4f inverseViewMatrix = scene.getCamera().getViewMatrix().inverse();
 
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for (int col=0; col < width; col++)  {
         for (int row=0; row < height; row++) {
 
@@ -35,12 +44,12 @@ void Raymarcher::render(const Scene& scene, MainWindow& window, RGBA *imageData)
             int index = row*scene.c_width + col;
             RGBA originalColor = imageData[index];
             imageData[index] = marchRay(scene,originalColor,p,d);
-            window.updatePixel(col,row,imageData[index]); 
+            // window.updatePixel(col,row,imageData[index]); 
         }
 
     }
-    window.updateDisplay();
-    std::cout << "Updated Display" << std::endl;
+    // window.updateDisplay();
+    // std::cout << "Updated Display" << std::endl;
     
 }
 

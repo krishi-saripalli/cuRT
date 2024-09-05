@@ -1,7 +1,7 @@
 //To build, cd into build dir and run cmake -DCMAKE_PREFIX_PATH=/Users/saripallikrishi/Qt/6.2.4/macos ..
 #include <iostream>
 #include <Eigen/Dense>
-#include <glfw/include/GLFW/glfw3.h>
+#include <GLFW/glfw3.h>
 
 
 #include <QApplication>
@@ -15,8 +15,9 @@
 #include <iostream>
 #include "utils/sceneparser.h"
 #include "utils/rgba.h"
-#include "window/mainwindow.h"
+#include "raymarcher/scene.h"
 #include "raymarcher/raymarcher.h"
+
 
 
 int main(int argc, char *argv[])
@@ -102,9 +103,9 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    MainWindow window(width, height);
     
-    window.show();
+    
+
 
     // Extracting data pointer from Qt's image API
     QImage image = QImage(width, height, QImage::Format_RGBX8888);
@@ -123,25 +124,33 @@ int main(int argc, char *argv[])
     // rtConfig.enableAcceleration  = settings.value("Feature/acceleration").toBool();
     // rtConfig.enableDepthOfField  = settings.value("Feature/depthoffield").toBool();
 
-    Raymarcher raymarcher{};
+    
+    Window window(width, height,"The Raymarcher");
+    Raymarcher raymarcher(window);
 
     const Scene scene{ width, height, metaData };
 
-    // // Note that we're passing `data` as a pointer (to its first element)
-    // // Recall from Lab 1 that you can access its elements like this: `data[i]`
-    raymarcher.render(scene, window, data);
+
+    try {
+        raymarcher.run();
+    } 
+    catch (const std::exception &e) {
+        std::cerr << e.what() << '\n';
+        return EXIT_FAILURE;
+    }
+
 
     // // Saving the image
-    success = image.save(oImagePath);
-    if (!success) {
-        success = image.save(oImagePath, "PNG");
-    }
-    if (success) {
-        std::cout << "Saved rendered image to \"" << oImagePath.toStdString() << "\"" << std::endl;
-    } else {
-        std::cerr << "Error: failed to save image to \"" << oImagePath.toStdString() << "\"" << std::endl;
-    }
+    // success = image.save(oImagePath);
+    // if (!success) {
+    //     success = image.save(oImagePath, "PNG");
+    // }
+    // if (success) {
+    //     std::cout << "Saved rendered image to \"" << oImagePath.toStdString() << "\"" << std::endl;
+    // } else {
+    //     std::cerr << "Error: failed to save image to \"" << oImagePath.toStdString() << "\"" << std::endl;
+    // }
 
-    // a.exit();
-    return a.exec();
+    // // a.exit();
+    // return a.exec();
 }

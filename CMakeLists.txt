@@ -14,11 +14,10 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_OSX_ARCHITECTURES "x86_64")
+set(CMAKE_OSX_ARCHITECTURES "arm64") #TODO openmp does not work with arm64?
 
-
-#OpenMP
-find_package(OpenMP)
+# #OpenMP
+# find_package(OpenMP)
 
 #Vulkan
 find_package(Vulkan REQUIRED)
@@ -29,6 +28,9 @@ find_package(Qt6 REQUIRED COMPONENTS Gui)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 find_package(Qt6 REQUIRED COMPONENTS Xml)
 
+#find glfw
+find_package(glfw3 3.4 REQUIRED)
+
 # Specifies .cpp and .h files to be passed to the compiler
 add_executable(${PROJECT_NAME}
     main.cpp
@@ -38,7 +40,8 @@ add_executable(${PROJECT_NAME}
     utils/sceneparser.h
     utils/scenedata.h
     utils/rgba.h
-    window/mainwindow.h
+    window/window.h
+    window/window.cpp
     camera/camera.cpp
     camera/camera.h
     raymarcher/hit.h
@@ -50,14 +53,15 @@ add_executable(${PROJECT_NAME}
 
 )
 
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt::Core
     Qt::Gui
     Qt::Xml
     Qt::Widgets
-    OpenMP::OpenMP_CXX
     Vulkan::Vulkan
-
+    glfw
+     # OpenMP::OpenMP_CXX
 )
 
 file(GLOB EIGEN_DIR_CONTENTS ${CMAKE_CURRENT_LIST_DIR}/Eigen/*)
@@ -66,16 +70,12 @@ if(EIGEN_DIR_SIZE EQUAL 0)
     message(FATAL_ERROR "Eigen dependency not pulled, please run `git submodule update --init --recursive`")
 endif()
 
-file(GLOB GLFW_DIR_CONTENTS ${CMAKE_CURRENT_LIST_DIR}/glfw/*)
-list(LENGTH GLFW_DIR_CONTENTS GLFW_DIR_SIZE)
-if(GLFW_DIR_SIZE EQUAL 0)
-    message(FATAL_ERROR "glfw dependency not pulled, please run `git submodule update --init --recursive`")
-endif()
+
+
 
 # This allows you to `#include <Eigen/...>`
 target_include_directories(${PROJECT_NAME} PRIVATE
     Eigen
-    glfw
 )
 
 # Set this flag to silence warnings on Windows
