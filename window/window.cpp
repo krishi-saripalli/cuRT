@@ -1,10 +1,12 @@
 #include "window.h"
+#include <iostream>
 
 Window::Window(int w, int h, std::string name) : width{w}, height{h}, windowName{name} {
     initWindow();
 }
 
 Window::~Window() {
+    std::cout << "Window Destroyed!" << std::endl;
     glfwDestroyWindow(window);
     glfwTerminate();
 }

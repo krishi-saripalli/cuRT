@@ -125,8 +125,9 @@ int main(int argc, char *argv[])
     // rtConfig.enableDepthOfField  = settings.value("Feature/depthoffield").toBool();
 
     
-    Window window(width, height,"The Raymarcher");
-    Raymarcher raymarcher(window);
+    
+    std::unique_ptr<Window> window (new Window(width,height,"the claw"));
+    Raymarcher raymarcher{std::move(window)};
 
     const Scene scene{ width, height, metaData };
 

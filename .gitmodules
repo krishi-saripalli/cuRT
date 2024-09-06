@@ -3,6 +3,3 @@
 	url = https://github.com/brown-cs-224/Eigen
 
 
-[submodule "glfw"]
-	path = glfw
-	url = https://github.com/krishi-saripalli/glfw

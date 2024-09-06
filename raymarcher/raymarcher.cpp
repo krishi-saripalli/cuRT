@@ -5,12 +5,13 @@
 #include <iostream>
 // #include <omp.h>
 
-Raymarcher::Raymarcher(Window window) : window(std::make_unique<Window>(std::move(window))) {
+Raymarcher::Raymarcher(std::unique_ptr<Window> w) : window(std::move(w)) {
     
 }
 
+
+
 void Raymarcher::run() {
-    std::cout << window << std::endl;
     while(!(*window).shouldClose()) {
         glfwPollEvents();
     }

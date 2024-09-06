@@ -7,7 +7,7 @@
 class Raymarcher {
 
     public:
-        Raymarcher(Window window);
+        Raymarcher(std::unique_ptr<Window> w);
         void run();
         void render(const Scene& scene, RGBA *imageData);
 
