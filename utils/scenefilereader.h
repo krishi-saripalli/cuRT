@@ -1,12 +1,16 @@
 #pragma once
 
 #include "scenedata.h"
+#include "utils/json.hpp"
+
+
 
 #include <vector>
 #include <map>
-
 #include <QJsonDocument>
 #include <QJsonObject>
+
+using json = nlohmann::json;
 
 // This class parses the scene graph specified by the CS123 Xml file format.
 class ScenefileReader {
@@ -29,14 +33,14 @@ public:
 private:
     // The filename should be contained within this parser implementation.
     // If you want to parse a new file, instantiate a different parser.
-    bool parseGlobalData(const QJsonObject &globaldata);
-    bool parseCameraData(const QJsonObject &cameradata);
-    bool parseTemplateGroups(const QJsonValue &templateGroups);
-    bool parseTemplateGroupData(const QJsonObject &templateGroup);
-    bool parseGroups(const QJsonValue &groups, SceneNode *parent);
-    bool parseGroupData(const QJsonObject &object, SceneNode *node);
-    bool parsePrimitive(const QJsonObject &prim, SceneNode *node);
-    bool parseLightData(const QJsonObject &lightData, SceneNode *node);
+    bool parseGlobalData(const json& globaldata);
+    bool parseCameraData(const json& cameradata);
+    bool parseTemplateGroups(const json& templateGroups);
+    bool parseTemplateGroupData(const json& templateGroup);
+    bool parseGroups(const json& groups, SceneNode *parent);
+    bool parseGroupData(const json& object, SceneNode *node);
+    bool parsePrimitive(const json& prim, SceneNode *node);
+    bool parseLightData(const json& lightData, SceneNode *node);
 
     std::string file_name;
 
