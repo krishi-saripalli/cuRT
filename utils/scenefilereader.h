@@ -7,8 +7,7 @@
 
 #include <vector>
 #include <map>
-#include <QJsonDocument>
-#include <QJsonObject>
+
 
 using json = nlohmann::json;
 

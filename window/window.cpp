@@ -2,6 +2,7 @@
 #include <iostream>
 
 Window::Window(int w, int h, std::string name) : width{w}, height{h}, windowName{name} {
+    std::cout << "Window Constructed!" << std::endl;
     initWindow();
 }
 

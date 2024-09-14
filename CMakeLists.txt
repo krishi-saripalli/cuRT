@@ -22,11 +22,6 @@ set(CMAKE_OSX_ARCHITECTURES "arm64") #TODO openmp does not work with arm64?
 #Vulkan
 find_package(Vulkan REQUIRED)
 
-# Specifies required Qt components
-find_package(Qt6 REQUIRED COMPONENTS Core)
-find_package(Qt6 REQUIRED COMPONENTS Gui)
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
-find_package(Qt6 REQUIRED COMPONENTS Xml)
 
 #find glfw
 find_package(glfw3 3.4 REQUIRED)
@@ -55,10 +50,6 @@ add_executable(${PROJECT_NAME}
 
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    Qt::Core
-    Qt::Gui
-    Qt::Xml
-    Qt::Widgets
     Vulkan::Vulkan
     glfw
      # OpenMP::OpenMP_CXX
