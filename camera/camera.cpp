@@ -1,7 +1,6 @@
 #include <iostream>
-#include <stdexcept>
 #include "camera.h"
-
+#include <Eigen/Dense>
 #include "utils/scenedata.h"
 
 void Camera::init(SceneCameraData cData) {
@@ -26,6 +25,8 @@ Eigen::Matrix4f Camera::getViewMatrix() const {
         0.0,1.0,0.0,-pos[1],
         0.0,0.0,1.0,-pos[2],
         0.0,0.0,0.0,1.0;
+
+    
 
     Eigen::Matrix4f rotationMatrix;
     rotationMatrix <<

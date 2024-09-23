@@ -2,7 +2,7 @@
 #include "scene.h"
 #include "../window/window.h"
 #include "hit.h"
-
+#include <memory>
 
 class Raymarcher {
 

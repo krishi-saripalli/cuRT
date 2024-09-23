@@ -17,5 +17,6 @@ void Window::initWindow() {
     glfwWindowHint(GLFW_RESIZABLE,GLFW_FALSE);
 
     window = glfwCreateWindow(width,height,windowName.c_str(),nullptr,nullptr);
+    std::cout << window << std::endl;
     glfwShowWindow(window);
 }

@@ -16,15 +16,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_OSX_ARCHITECTURES "arm64") #TODO openmp does not work with arm64?
 
-# #OpenMP
-# find_package(OpenMP)
+# Enable CUDA support
+enable_language(CUDA)
 
-#Vulkan
-find_package(Vulkan REQUIRED)
-
-
-#find glfw
+# Find required packages
 find_package(glfw3 3.4 REQUIRED)
+find_package(CUDA REQUIRED)
+find_package(OpenGL REQUIRED)
+
+# Include directories
+#include_directories(${CUDA_INCLUDE_DIRS})
+#include_directories(${OPENGL_INCLUDE_DIR})
 
 # Specifies .cpp and .h files to be passed to the compiler
 add_executable(${PROJECT_NAME}
@@ -48,11 +50,17 @@ add_executable(${PROJECT_NAME}
 
 )
 
+# Set properties for CUDA compilation
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    Vulkan::Vulkan
+    ${CUDA_LIBRARIES}
+    ${OPENGL_LIBRARIES}
     glfw
-     # OpenMP::OpenMP_CXX
+    cuda
+    cudart
 )
 
 file(GLOB EIGEN_DIR_CONTENTS ${CMAKE_CURRENT_LIST_DIR}/Eigen/*)

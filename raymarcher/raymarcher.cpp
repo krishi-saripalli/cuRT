@@ -13,6 +13,11 @@ Raymarcher::Raymarcher(std::unique_ptr<Window> w) : window(std::move(w)) {
 
 void Raymarcher::run() {
     while(!(*window).shouldClose()) {
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+
+
         glfwPollEvents();
     }
 }
@@ -45,12 +50,10 @@ void Raymarcher::render(const Scene& scene, RGBA *imageData) {
             int index = row*scene.c_width + col;
             RGBA originalColor = imageData[index];
             imageData[index] = marchRay(scene,originalColor,p,d);
-            // window.updatePixel(col,row,imageData[index]); 
         }
 
     }
-    // window.updateDisplay();
-    // std::cout << "Updated Display" << std::endl;
+
     
 }
 

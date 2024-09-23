@@ -1,7 +1,7 @@
 {
     "IO": {
-      "scene": "/Users/saripallikrishi/projects/raymarcher/scenefiles/intersect/parse_matrix.json",
-      "output": "/Users/saripallikrishi/projects/raymarcher/output/test.png"
+      "scene": "/users/ksaripal/projects/raymarcher/scenefiles/intersect/parse_matrix.json",
+      "output": "/users/ksaripal/projects/raymarcher/output/test.png"
     },
     "Canvas": {
       "width": 1024,

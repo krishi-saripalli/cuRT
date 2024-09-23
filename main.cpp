@@ -8,12 +8,13 @@
 #include <GLFW/glfw3.h>
 #include <utils/json.hpp>
 
+
 #include "utils/sceneparser.h"
 #include "utils/rgba.h"
 #include "raymarcher/scene.h"
 #include "raymarcher/raymarcher.h"
 
-// For convenience
+
 using json = nlohmann::json;
 
 int main(int argc, char *argv[])
@@ -75,15 +76,19 @@ int main(int argc, char *argv[])
     RenderData metaData;
     bool success = SceneParser::parse(iScenePath, metaData);
 
+
     if (!success) {
         std::cerr << "Error loading scene: \"" << iScenePath << "\"" << std::endl;
         return 1;
     }
 
+
     std::unique_ptr<Window> window(new Window(width, height, "the claw"));
     Raymarcher raymarcher{std::move(window)};
 
     const Scene scene{width, height, metaData};
+
+    
 
     try {
         raymarcher.run();
