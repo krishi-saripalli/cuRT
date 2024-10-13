@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <GL/glew.h>
 
-void getLastGlError(const char *errorMessage, const char *file, const int line) 
+inline void getLastGlError(const char *errorMessage, const char *file, const int line) 
 {                               
   GLenum gl_error = glGetError();
 

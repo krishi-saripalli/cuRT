@@ -21,6 +21,7 @@ enable_language(CUDA)
 
 # Find required packages
 find_package(glfw3 3.4 REQUIRED)
+find_package(GLEW REQUIRED)
 find_package(CUDA REQUIRED)
 find_package(OpenGL REQUIRED)
 
@@ -41,12 +42,15 @@ add_executable(${PROJECT_NAME}
     window/window.cpp
     camera/camera.cpp
     camera/camera.h
+
     raymarcher/hit.h
     raymarcher/raymarcher.h
     raymarcher/raymarcher.cpp
     raymarcher/scene.h
     raymarcher/scene.cpp
     raymarcher/distance.h
+
+    shader/shader.h
 
 )
 
@@ -58,6 +62,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${CUDA_LIBRARIES}
     ${OPENGL_LIBRARIES}
+    GLEW::GLEW
     glfw
     cuda
     cudart

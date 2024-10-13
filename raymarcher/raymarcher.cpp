@@ -3,35 +3,58 @@
 #include <raymarcher/distance.h>
 #include <utils/rgba.h>
 #include <iostream>
-// #include <omp.h>
+#include <shader/shader.h>
+
 
 Raymarcher::Raymarcher(std::unique_ptr<Window> w) : window(std::move(w)) {
     
 }
 
-
-
 void Raymarcher::run() {
-    while(!(*window).shouldClose()) {
 
+    if (glfwGetCurrentContext() == nullptr) {
+        std::cerr << "Error: No OpenGL context" << std::endl;
+        return;
+    }
+
+    while(!(*window).shouldClose()) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
 
+        if (shaderProgram == 0) {
+            std::cerr << "Error: shaderProgram is 0" << std::endl;
+            break;
+        }
 
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glUseProgram(shaderProgram);
+        GET_GL_ERROR("After glUseProgram");
+
+        glBindVertexArray(quad.vao);
+        GET_GL_ERROR("After glBindVertexArray");
+
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        GET_GL_ERROR("After glDrawElements");
+
+        glfwSwapBuffers(window->glWindow);
         glfwPollEvents();
+
+        GET_GL_ERROR("Loop() ERROR\n");
     }
 }
+
 void Raymarcher::render(const Scene& scene, RGBA *imageData) {
 
     float width = scene.c_width, height = scene.c_height, distToViewPlane = 0.1f, aspectRatio = scene.getCamera().getAspectRatio(width,height);
     float heightAngle = scene.getCamera().getHeightAngle();
     Eigen::Matrix4f inverseViewMatrix = scene.getCamera().getViewMatrix().inverse();
 
-    // #pragma omp parallel for
     for (int col=0; col < width; col++)  {
         for (int row=0; row < height; row++) {
 
-            //Calculate the center of the pixel in normalize image space coordinates
+            //Calculate the center of the pixel in normalized image space coordinates
             float x = ((col+0.5f)/width) - 0.5f, y = ((height - 1.f - row+0.5f)/height) - 0.5f;
 
             //Calculate the view plane dimensions (U,V) and point on view plane

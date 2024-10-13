@@ -5,7 +5,6 @@
 #include <memory>
 #include <stdexcept>
 #include <Eigen/Dense>
-#include <GLFW/glfw3.h>
 #include <utils/json.hpp>
 
 
@@ -13,6 +12,7 @@
 #include "utils/rgba.h"
 #include "raymarcher/scene.h"
 #include "raymarcher/raymarcher.h"
+
 
 
 using json = nlohmann::json;
@@ -83,12 +83,17 @@ int main(int argc, char *argv[])
     }
 
 
-    std::unique_ptr<Window> window(new Window(width, height, "the claw"));
+    std::unique_ptr<Window> window(new Window(width, height, "THE CLAW"));
     Raymarcher raymarcher{std::move(window)};
-
     const Scene scene{width, height, metaData};
 
-    
+    TextureQuad quad = setupTextureDisplayQuad(scene.getCamera().getAspectRatio(width,height));
+    auto [texture, pbo] = createTexture(width,height,4);
+
+    GLuint pinkQuadShader = createPinkQuadShader();
+    raymarcher.setShader(pinkQuadShader);
+    raymarcher.setTextureQuad(quad);
+
 
     try {
         raymarcher.run();
@@ -96,6 +101,16 @@ int main(int argc, char *argv[])
         std::cerr << e.what() << '\n';
         return EXIT_FAILURE;
     }
+
+    glDeleteVertexArrays(1, &(quad.vao));
+    glDeleteBuffers(1, &(quad.vbo));
+    glDeleteBuffers(1, &(quad.vboTexture));
+    glDeleteBuffers(1, &(quad.ebo));
+    glDeleteBuffers(1, &pbo);
+    glDeleteTextures(1, &texture);
+    glDeleteProgram(pinkQuadShader);
+
+    GET_GL_ERROR("Free() ERROR");
 
     std::cout << "Finished" << std::endl;
 

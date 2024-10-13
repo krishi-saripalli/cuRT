@@ -1,3 +1,4 @@
+#include "../shader/shader.h"
 #include "../utils/rgba.h"
 #include "scene.h"
 #include "../window/window.h"
@@ -11,9 +12,25 @@ class Raymarcher {
         void run();
         void render(const Scene& scene, RGBA *imageData);
 
+        void setDrawCallback(std::function<void()> callbackFunction)
+        {
+            onDraw = callbackFunction;
+        }
+        void setShader(GLuint shader)
+        {
+            shaderProgram = shader;    
+        }
+
+        void setTextureQuad(TextureQuad& q) {
+            quad = q;
+        }
+
 
     private:
         std::unique_ptr<Window> window;
+        std::function<void()> onDraw;
+        GLuint shaderProgram;
+        TextureQuad quad;
 
         RGBA marchRay(const Scene& scene, const RGBA originalColor, const Eigen::Vector4f& p, const Eigen::Vector4f& d);
         Hit getClosestHit(const Scene& scene, const Eigen::Vector4f& pos);
