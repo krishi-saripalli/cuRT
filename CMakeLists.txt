@@ -37,7 +37,7 @@ add_executable(${PROJECT_NAME}
     utils/sceneparser.cpp
     utils/sceneparser.h
     utils/scenedata.h
-    utils/rgba.h
+    utils/rgba.cuh
     window/window.h
     window/window.cpp
     camera/camera.cpp

@@ -4,6 +4,7 @@ rm -rf build/*
 
 cd build
 
+module load cmake
 module load cuda
 module load glew
 

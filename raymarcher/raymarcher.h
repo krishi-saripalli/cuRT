@@ -1,5 +1,5 @@
 #include "../shader/shader.h"
-#include "../utils/rgba.h"
+#include "../utils/rgba.cuh"
 #include "scene.h"
 #include "../window/window.h"
 #include "hit.h"

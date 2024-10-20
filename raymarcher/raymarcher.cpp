@@ -1,7 +1,7 @@
 
 #include <raymarcher/raymarcher.h>
 #include <raymarcher/distance.h>
-#include <utils/rgba.h>
+#include "utils/rgba.cuh"
 #include <iostream>
 #include <shader/shader.h>
 
@@ -51,15 +51,17 @@ void Raymarcher::render(const Scene& scene, RGBA *imageData) {
     float heightAngle = scene.getCamera().getHeightAngle();
     Eigen::Matrix4f inverseViewMatrix = scene.getCamera().getViewMatrix().inverse();
 
+    //calculate the view plane dimensions (U,V) and point on view plane
+    float viewPlaneHeight = 2.f * distToViewPlane * std::tan(.5f*float(heightAngle));
+    float viewPlaneWidth = viewPlaneHeight * aspectRatio;
+
     for (int col=0; col < width; col++)  {
         for (int row=0; row < height; row++) {
 
             //Calculate the center of the pixel in normalized image space coordinates
-            float x = ((col+0.5f)/width) - 0.5f, y = ((height - 1.f - row+0.5f)/height) - 0.5f;
+            float x = ((col+0.5f)/width) - 0.5f, y = ((height - 1.f - row + 0.5f)/height) - 0.5f;
 
-            //Calculate the view plane dimensions (U,V) and point on view plane
-            float viewPlaneHeight = 2.f * distToViewPlane * std::tan(.5f*float(heightAngle));
-            float viewPlaneWidth = viewPlaneHeight * aspectRatio;
+            
             Eigen::Vector3f pointOnPlane{viewPlaneWidth * x, viewPlaneHeight * y, -1.f * distToViewPlane};
 
             //Calculate ray direction

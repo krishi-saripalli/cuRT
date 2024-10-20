@@ -9,7 +9,7 @@
 
 
 #include "utils/sceneparser.h"
-#include "utils/rgba.h"
+#include "utils/rgba.cuh"
 #include "raymarcher/scene.h"
 #include "raymarcher/raymarcher.h"
 
@@ -90,8 +90,8 @@ int main(int argc, char *argv[])
     TextureQuad quad = setupTextureDisplayQuad(scene.getCamera().getAspectRatio(width,height));
     auto [texture, pbo] = createTexture(width,height,4);
 
-    GLuint pinkQuadShader = createPinkQuadShader();
-    raymarcher.setShader(pinkQuadShader);
+    GLuint shader = createShader();
+    raymarcher.setShader(shader);
     raymarcher.setTextureQuad(quad);
 
 
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
     glDeleteBuffers(1, &(quad.ebo));
     glDeleteBuffers(1, &pbo);
     glDeleteTextures(1, &texture);
-    glDeleteProgram(pinkQuadShader);
+    glDeleteProgram(shader);
 
     GET_GL_ERROR("Free() ERROR");
 
