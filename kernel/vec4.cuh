@@ -1,9 +1,10 @@
-#ifndef VEC3H
-#define VEC3H
+#ifndef VEC4H_CUH
+#define VEC4H_CUH
 
 #include <math.h>
 #include <stdlib.h>
 #include <iostream>
+#include <cuda_runtime.h>
 
 class vec4  {
 

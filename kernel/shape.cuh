@@ -1,8 +1,10 @@
 #ifndef GPU_SHAPE_CUH
 #define GPU_SHAPE_CUH
 
+#include <cuda_runtime.h>
 #include "vec4.cuh" 
-#include "mat4.cuh"  
+#include "mat4.cuh" 
+ 
 
 enum class GPUPrimitiveType {
     PRIMITIVE_CUBE,

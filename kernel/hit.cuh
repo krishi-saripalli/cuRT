@@ -1,6 +1,7 @@
-#ifndef GPU_SHAPE_CUH
-#define GPU_SHAPE_CUH
+#ifndef GPU_HIT_CUH
+#define GPU_HIT_CUH
 
+#include <cuda_runtime.h>
 #include "vec3.cuh" 
 #include "mat4.cuh"  
 

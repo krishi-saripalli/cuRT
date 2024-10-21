@@ -1,9 +1,13 @@
 
-#include <raymarcher/raymarcher.h>
-#include <raymarcher/distance.h>
-#include "utils/rgba.cuh"
 #include <iostream>
-#include <shader/shader.h>
+
+#include <cuda_runtime.h>
+
+#include "raymarcher/raymarcher.h"
+#include "raymarcher/distance.h"
+#include "shader/shader.h"
+#include "utils/rgba.cuh"
+#include "render.cuh"
 
 
 Raymarcher::Raymarcher(std::unique_ptr<Window> w) : window(std::move(w)) {
@@ -50,34 +54,32 @@ void Raymarcher::render(const Scene& scene, RGBA *imageData) {
     float width = scene.c_width, height = scene.c_height, distToViewPlane = 0.1f, aspectRatio = scene.getCamera().getAspectRatio(width,height);
     float heightAngle = scene.getCamera().getHeightAngle();
     Eigen::Matrix4f inverseViewMatrix = scene.getCamera().getViewMatrix().inverse();
-
-    //calculate the view plane dimensions (U,V) and point on view plane
     float viewPlaneHeight = 2.f * distToViewPlane * std::tan(.5f*float(heightAngle));
     float viewPlaneWidth = viewPlaneHeight * aspectRatio;
 
-    for (int col=0; col < width; col++)  {
-        for (int row=0; row < height; row++) {
+    dim3 blockSize(16,16);
+    dim3 gridSize(
+        (width + blockSize.x - 1) / blockSize.x,
+        (height + blockSize.y - 1) / blockSize.y
+    );
 
-            //Calculate the center of the pixel in normalized image space coordinates
-            float x = ((col+0.5f)/width) - 0.5f, y = ((height - 1.f - row + 0.5f)/height) - 0.5f;
+    //create GPU shapes array
+    for ( const RenderShapeData& shapeData : scene.metaData.shapes) {
 
-            
-            Eigen::Vector3f pointOnPlane{viewPlaneWidth * x, viewPlaneHeight * y, -1.f * distToViewPlane};
-
-            //Calculate ray direction
-            Eigen::Vector4f p(0.f,0.f,0.f,1.f);
-            Eigen::Vector4f d(pointOnPlane.x(), pointOnPlane.y(), pointOnPlane.z(), 0.f);
-
-            //Transform the ray to worldspace
-            p = inverseViewMatrix * p;
-            d = inverseViewMatrix * d;
-
-            int index = row*scene.c_width + col;
-            RGBA originalColor = imageData[index];
-            imageData[index] = marchRay(scene,originalColor,p,d);
-        }
+        
 
     }
+    
+
+    renderKernel<<<blockSize,gridSize>>>(
+        imageData,
+        deviceShapes,
+        mat4(inverseViewMatrix.data()),
+        width,
+        height,
+
+
+    )
 
     
 }
