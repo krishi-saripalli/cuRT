@@ -2,19 +2,32 @@
 #include <iostream>
 
 #include <cuda_runtime.h>
+#include <thrust/device_vector.h>
 
 #include "raymarcher/raymarcher.h"
 #include "raymarcher/distance.h"
 #include "shader/shader.h"
 #include "utils/rgba.cuh"
-#include "render.cuh"
+#include "kernel/render.cuh"
+#include "kernel/shape.cuh"
+
+
+#include <cuda_gl_interop.h>
+
 
 
 Raymarcher::Raymarcher(std::unique_ptr<Window> w) : window(std::move(w)) {
     
 }
 
-void Raymarcher::run() {
+Raymarcher::~Raymarcher() {
+    if (cudaPboResource) {
+        cudaGraphicsUnregisterResource(cudaPboResource);
+        std::cout << "cudaPboResource Unregistered!" << std::endl;
+    }
+}
+
+void Raymarcher::run(const Scene& scene) {
 
     if (glfwGetCurrentContext() == nullptr) {
         std::cerr << "Error: No OpenGL context" << std::endl;
@@ -29,6 +42,9 @@ void Raymarcher::run() {
             std::cerr << "Error: shaderProgram is 0" << std::endl;
             break;
         }
+
+        //TODO: add some conditional logic (only when event handlers receive something)
+        render(scene);
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -49,39 +65,74 @@ void Raymarcher::run() {
     }
 }
 
-void Raymarcher::render(const Scene& scene, RGBA *imageData) {
+void Raymarcher::render(const Scene& scene) {
 
     float width = scene.c_width, height = scene.c_height, distToViewPlane = 0.1f, aspectRatio = scene.getCamera().getAspectRatio(width,height);
+    int imageWidth = (int) width, imageHeight = (int) height;
     float heightAngle = scene.getCamera().getHeightAngle();
     Eigen::Matrix4f inverseViewMatrix = scene.getCamera().getViewMatrix().inverse();
     float viewPlaneHeight = 2.f * distToViewPlane * std::tan(.5f*float(heightAngle));
     float viewPlaneWidth = viewPlaneHeight * aspectRatio;
 
+    
+    //map PBO to CUDA
+    void* devPtr;
+    size_t numBytes;
+    cudaGraphicsMapResources(1, &cudaPboResource, 0);
+    cudaGraphicsResourceGetMappedPointer(&devPtr,&numBytes,cudaPboResource);
+    RGBA* deviceImageData = (RGBA*)devPtr;
+
+   
+    //allocate GPU shapes on the device
+    thrust::device_vector<GPUShape> deviceShapes;
+    deviceShapes.reserve(scene.metaData.shapes.size());
+
+    for ( const RenderShapeData& shapeData : scene.metaData.shapes) {
+        deviceShapes.push_back(GPUShape{static_cast<GPUPrimitiveType>(shapeData.primitive.type), mat4(shapeData.inverseCtm.data())});
+    }
+
+    // allocate inverse view matrix on the device
+    mat4 hostInverseViewMat = mat4(inverseViewMatrix.data());
+    mat4* deviceInverseViewMat;
+    cudaMalloc(&deviceInverseViewMat, sizeof(mat4));
+    cudaMemcpy(deviceInverseViewMat, &hostInverseViewMat, sizeof(mat4), cudaMemcpyHostToDevice);
+
+    float *deviceWidth, *deviceHeight;
+
+    // allocate width and height on the device
+    cudaMalloc(&deviceWidth, sizeof(float));
+    cudaMalloc(&deviceHeight, sizeof(float));
+    cudaMemcpy(deviceWidth, &width, sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(deviceHeight, &height, sizeof(float), cudaMemcpyHostToDevice);
+
+
     dim3 blockSize(16,16);
     dim3 gridSize(
         (width + blockSize.x - 1) / blockSize.x,
         (height + blockSize.y - 1) / blockSize.y
+    ); // number of blocks
+
+    renderKernel<<<gridSize,blockSize>>>(
+        deviceImageData,
+        thrust::raw_pointer_cast(deviceShapes.data()),
+        deviceInverseViewMat,
+        deviceWidth,
+        deviceHeight
     );
 
-    //create GPU shapes array
-    for ( const RenderShapeData& shapeData : scene.metaData.shapes) {
+    // unmap CUDA resource
+    cudaGraphicsUnmapResources(1, &cudaPboResource, 0);
 
-        
+    // update texture from PBO
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, imageWidth, imageHeight, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
-    }
-    
+    cudaFree(deviceInverseViewMat);
+    cudaFree(deviceWidth);
+    cudaFree(deviceHeight);
 
-    renderKernel<<<blockSize,gridSize>>>(
-        imageData,
-        deviceShapes,
-        mat4(inverseViewMatrix.data()),
-        width,
-        height,
-
-
-    )
-
-    
 }
 
 RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, const Eigen::Vector4f& p, const Eigen::Vector4f& d) {

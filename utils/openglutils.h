@@ -1,8 +1,9 @@
 #pragma once
 
+#include <GL/glew.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <GL/glew.h>
+
 
 inline void getLastGlError(const char *errorMessage, const char *file, const int line) 
 {                               

@@ -19,6 +19,7 @@ struct GPUShape {
     mat4 inverseCtm;
     int id; //index in original RenderShapeData vector
 
+    __host__ __device__ GPUShape() = default;
     __host__ __device__ GPUShape(GPUPrimitiveType _type, const mat4& _inverseCtm)
         : type(_type), inverseCtm(_inverseCtm) {}
 };

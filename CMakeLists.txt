@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 # Sets project name
-project(raymarcher LANGUAGES CXX)
+project(raymarcher LANGUAGES CXX CUDA)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -14,10 +14,17 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_OSX_ARCHITECTURES "arm64") #TODO openmp does not work with arm64?
+set(CMAKE_OSX_ARCHITECTURES "arm64")
+
+# Set CUDA architecture for Quadro RTX 6000 (Turing)
+set(CMAKE_CUDA_ARCHITECTURES 75)
 
 # Enable CUDA support
 enable_language(CUDA)
+
+# Set GLEW paths explicitly before finding packages
+set(GLEW_INCLUDE_DIR "/oscar/rt/9.2/software/0.20-generic/0.20.1/opt/spack/linux-rhel9-x86_64_v3/gcc-11.3.1/glew-2.2.0-plawm2j/include")
+set(GLEW_LIBRARY "/oscar/rt/9.2/software/0.20-generic/0.20.1/opt/spack/linux-rhel9-x86_64_v3/gcc-11.3.1/glew-2.2.0-plawm2j/lib/libGLEW.so")
 
 # Find required packages
 find_package(glfw3 3.4 REQUIRED)
@@ -25,44 +32,73 @@ find_package(GLEW REQUIRED)
 find_package(CUDA REQUIRED)
 find_package(OpenGL REQUIRED)
 
-# Include directories
-#include_directories(${CUDA_INCLUDE_DIRS})
-#include_directories(${OPENGL_INCLUDE_DIR})
+# Set CUDA specific compile options to include GLEW
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} "-I${GLEW_INCLUDE_DIR}")
+
+
 
 # Specifies .cpp and .h files to be passed to the compiler
 add_executable(${PROJECT_NAME}
     main.cpp
+
+    # utils
     utils/scenefilereader.cpp
     utils/scenefilereader.h
     utils/sceneparser.cpp
     utils/sceneparser.h
     utils/scenedata.h
+    utils/openglutils.h
+    utils/json.hpp
     utils/rgba.cuh
+
+    #window
     window/window.h
     window/window.cpp
+
+    #camera
     camera/camera.cpp
     camera/camera.h
 
+    #raymarcher
     raymarcher/hit.h
     raymarcher/raymarcher.h
-    raymarcher/raymarcher.cpp
     raymarcher/scene.h
     raymarcher/scene.cpp
     raymarcher/distance.h
+    raymarcher/raymarcher.cu
 
+    #shader
     shader/shader.h
 
+    #kernel
+    kernel/render.cu
+    kernel/cudautils.cuh
+    kernel/hit.cuh
+    kernel/mat4.cuh
+    kernel/render.cuh
+    kernel/shape.cuh
+    kernel/vec3.cuh
+    kernel/vec4.cuh
 )
+
 
 # Set properties for CUDA compilation
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
 )
 
+target_compile_options(${PROJECT_NAME} PRIVATE 
+    $<$<COMPILE_LANGUAGE:CUDA>:-I${GLEW_INCLUDE_DIR}>
+)
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    GLEW_STATIC
+)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${CUDA_LIBRARIES}
     ${OPENGL_LIBRARIES}
-    GLEW::GLEW
+    ${GLEW_LIBRARY}
     glfw
     cuda
     cudart
@@ -79,7 +115,10 @@ endif()
 
 # This allows you to `#include <Eigen/...>`
 target_include_directories(${PROJECT_NAME} PRIVATE
-    Eigen
+    ${GLEW_INCLUDE_DIR}
+    ${CUDA_INCLUDE_DIRS}
+    ${OPENGL_INCLUDE_DIR}
+    Eigen 
 )
 
 # Set this flag to silence warnings on Windows

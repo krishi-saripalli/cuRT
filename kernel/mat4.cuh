@@ -17,7 +17,7 @@ public:
         m[3] = vec4(m30, m31, m32, m33);
     }
      
-     //constructor accepts column-major data and just transposes the data
+     //constructor accepts column-major data and just transposes it
     __host__ __device__ mat4(const float* columnMajorData) {
         m[0] = vec4(columnMajorData[0], columnMajorData[4], columnMajorData[8],  columnMajorData[12]);
         m[1] = vec4(columnMajorData[1], columnMajorData[5], columnMajorData[9],  columnMajorData[13]);

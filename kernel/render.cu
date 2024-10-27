@@ -7,7 +7,6 @@
     const mat4 inverseViewMatrix,
     const int width,
     const int height,
-    const int numShapes,
     const float viewPlaneWidth,
     const float viewPlaneHeight
 ) {
@@ -23,8 +22,8 @@
         d = inverseViewMatrix * d;
         int index = row * width + col;
         RGBA originalColor = imageData[index];
-        imageData[index] = RGBA{0,255,0}; // color the screen green
 
+        imageData[index] = RGBA{0,255,0}; // color the screen green
     }
 
 }

@@ -89,14 +89,16 @@ int main(int argc, char *argv[])
 
     TextureQuad quad = setupTextureDisplayQuad(scene.getCamera().getAspectRatio(width,height));
     auto [texture, pbo] = createTexture(width,height,4);
+    raymarcher.setTexture(texture);
+    raymarcher.setPbo(pbo);
 
     GLuint shader = createShader();
     raymarcher.setShader(shader);
-    raymarcher.setTextureQuad(quad);
+    raymarcher.setQuad(quad);
 
 
     try {
-        raymarcher.run();
+        raymarcher.run(scene);
     } catch (const std::exception &e) {
         std::cerr << e.what() << '\n';
         return EXIT_FAILURE;
