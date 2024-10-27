@@ -38,7 +38,11 @@ class Raymarcher {
         void setPbo(GLuint p) {
             pbo = p;
             //last arg says that we intend on overwriting the contexts of the pbo
-            cudaGraphicsGLRegisterBuffer(&cudaPboResource, pbo, cudaGraphicsMapFlagsWriteDiscard);
+            cudaError_t err = cudaGraphicsGLRegisterBuffer(&cudaPboResource, pbo, cudaGraphicsMapFlagsWriteDiscard);
+            if (err != cudaSuccess) {
+                std::cerr << "Failed to register PBO with CUDA: " << cudaGetErrorString(err) << std::endl;
+                throw std::runtime_error("CUDA-OpenGL interop registration failed");
+            }
         }
 
 

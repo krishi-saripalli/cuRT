@@ -1,15 +1,14 @@
+#define EIGEN_NO_CUDA
 
 #include <iostream>
 
 #include <cuda_runtime.h>
-#include <thrust/device_vector.h>
 
 #include "raymarcher/raymarcher.h"
 #include "raymarcher/distance.h"
 #include "shader/shader.h"
 #include "utils/rgba.cuh"
 #include "kernel/render.cuh"
-#include "kernel/shape.cuh"
 
 
 #include <cuda_gl_interop.h>
@@ -46,11 +45,17 @@ void Raymarcher::run(const Scene& scene) {
         //TODO: add some conditional logic (only when event handlers receive something)
         render(scene);
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(shaderProgram);
         GET_GL_ERROR("After glUseProgram");
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        GLint texLoc = glGetUniformLocation(shaderProgram, "ourTexture");
+        if (texLoc == -1) {
+            std::cout << "Warning: Could not find texture uniform" << std::endl;
+        }
+        glUniform1i(texLoc, 0);
 
         glBindVertexArray(quad.vao);
         GET_GL_ERROR("After glBindVertexArray");
@@ -67,8 +72,8 @@ void Raymarcher::run(const Scene& scene) {
 
 void Raymarcher::render(const Scene& scene) {
 
-    float width = scene.c_width, height = scene.c_height, distToViewPlane = 0.1f, aspectRatio = scene.getCamera().getAspectRatio(width,height);
-    int imageWidth = (int) width, imageHeight = (int) height;
+    int width = scene.c_width, height = scene.c_height;
+    float distToViewPlane = 0.1f, aspectRatio = scene.getCamera().getAspectRatio(width,height);
     float heightAngle = scene.getCamera().getHeightAngle();
     Eigen::Matrix4f inverseViewMatrix = scene.getCamera().getViewMatrix().inverse();
     float viewPlaneHeight = 2.f * distToViewPlane * std::tan(.5f*float(heightAngle));
@@ -82,14 +87,20 @@ void Raymarcher::render(const Scene& scene) {
     cudaGraphicsResourceGetMappedPointer(&devPtr,&numBytes,cudaPboResource);
     RGBA* deviceImageData = (RGBA*)devPtr;
 
+
    
     //allocate GPU shapes on the device
-    thrust::device_vector<GPUShape> deviceShapes;
-    deviceShapes.reserve(scene.metaData.shapes.size());
+    std::vector<GPUShape> hostShapes;
+    GPUShape *deviceShapes;
+    int numPrimitives = scene.metaData.shapes.size();
+    hostShapes.reserve(numPrimitives);
 
     for ( const RenderShapeData& shapeData : scene.metaData.shapes) {
-        deviceShapes.push_back(GPUShape{static_cast<GPUPrimitiveType>(shapeData.primitive.type), mat4(shapeData.inverseCtm.data())});
+        hostShapes.push_back(GPUShape{static_cast<GPUPrimitiveType>(shapeData.primitive.type), mat4(shapeData.inverseCtm.data())});
     }
+    cudaMalloc(&deviceShapes, sizeof(GPUShape) * numPrimitives);
+    cudaMemcpy(deviceShapes, hostShapes.data(), sizeof(GPUShape) * numPrimitives, cudaMemcpyHostToDevice);
+
 
     // allocate inverse view matrix on the device
     mat4 hostInverseViewMat = mat4(inverseViewMatrix.data());
@@ -97,13 +108,22 @@ void Raymarcher::render(const Scene& scene) {
     cudaMalloc(&deviceInverseViewMat, sizeof(mat4));
     cudaMemcpy(deviceInverseViewMat, &hostInverseViewMat, sizeof(mat4), cudaMemcpyHostToDevice);
 
-    float *deviceWidth, *deviceHeight;
+    int *deviceWidth, *deviceHeight, *deviceNumPrimitives;
+    float *deviceViewPlaneWidth, *deviceViewPlaneHeight;
 
-    // allocate width and height on the device
-    cudaMalloc(&deviceWidth, sizeof(float));
-    cudaMalloc(&deviceHeight, sizeof(float));
-    cudaMemcpy(deviceWidth, &width, sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(deviceHeight, &height, sizeof(float), cudaMemcpyHostToDevice);
+
+    // allocate constants on the device
+    cudaMalloc(&deviceWidth, sizeof(int));
+    cudaMalloc(&deviceHeight, sizeof(int));
+    cudaMalloc(&deviceNumPrimitives, sizeof(int));
+    cudaMalloc(&deviceViewPlaneHeight, sizeof(float));
+    cudaMalloc(&deviceViewPlaneWidth, sizeof(float));
+
+    cudaMemcpy(deviceWidth, &width, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(deviceHeight, &height, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(deviceNumPrimitives, &numPrimitives, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(deviceViewPlaneWidth, &viewPlaneWidth, sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(deviceViewPlaneHeight, &viewPlaneHeight, sizeof(float), cudaMemcpyHostToDevice);
 
 
     dim3 blockSize(16,16);
@@ -112,13 +132,26 @@ void Raymarcher::render(const Scene& scene) {
         (height + blockSize.y - 1) / blockSize.y
     ); // number of blocks
 
+
+   
     renderKernel<<<gridSize,blockSize>>>(
         deviceImageData,
-        thrust::raw_pointer_cast(deviceShapes.data()),
+        deviceShapes,
         deviceInverseViewMat,
         deviceWidth,
-        deviceHeight
+        deviceHeight,
+        deviceNumPrimitives,
+        deviceViewPlaneWidth,
+        deviceViewPlaneHeight
     );
+
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        std::cerr << "Kernel launch failed: " << cudaGetErrorString(err) << std::endl;
+    }
+    
+    // synchronize
+    cudaDeviceSynchronize();
 
     // unmap CUDA resource
     cudaGraphicsUnmapResources(1, &cudaPboResource, 0);
@@ -126,9 +159,10 @@ void Raymarcher::render(const Scene& scene) {
     // update texture from PBO
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, imageWidth, imageHeight, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
+    cudaFree(deviceShapes);
     cudaFree(deviceInverseViewMat);
     cudaFree(deviceWidth);
     cudaFree(deviceHeight);

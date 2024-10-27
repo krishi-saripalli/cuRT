@@ -32,9 +32,10 @@ inline GLuint createShader()
         out vec4 FragColor;
         uniform sampler2D ourTexture;
         void main() {
-            FragColor = texture(ourTexture, TexCoord);
-        }
-    )";
+            vec4 texColor = texture(ourTexture, TexCoord);
+            FragColor = texColor;
+    }
+)";
 
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
@@ -85,6 +86,8 @@ inline TextureQuad setupTextureDisplayQuad(float aspectRatio)
     textCoords[1] = {1.0f, 0.0f};
     textCoords[2] = {0.0f, 0.0f};
     textCoords[3] = {0.0f, 1.0f};
+
+    
     
     const unsigned indices[] = {
         0, 1, 3,

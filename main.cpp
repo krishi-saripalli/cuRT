@@ -6,6 +6,9 @@
 #include <stdexcept>
 #include <Eigen/Dense>
 #include <utils/json.hpp>
+#include <GL/glew.h>  // GLEW must be included first!
+#include <GLFW/glfw3.h>
+#include "window/window.h"
 
 
 #include "utils/sceneparser.h"
