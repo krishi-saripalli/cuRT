@@ -2,9 +2,11 @@
 #define GPU_SHAPE_CUH
 
 #include <cuda_runtime.h>
+#include "vec3.cuh" 
 #include "vec4.cuh" 
 #include "mat4.cuh" 
  
+typedef float (*GPUDistanceFunction)(const vec3&);
 
 enum class GPUPrimitiveType {
     PRIMITIVE_CUBE,
@@ -14,14 +16,43 @@ enum class GPUPrimitiveType {
     PRIMITIVE_MESH
 };
 
-struct GPUShape {
+
+struct GPUScenePrimitive {
     GPUPrimitiveType type;
+    GPUSceneMaterial material;
+    GPUDistanceFunction distanceFunction;
+
+    
+    float distance(const vec3& p) const {
+        return distanceFunction(p);
+    }
+
+}
+
+struct GPUSceneMaterial {
+    vec4 cAmbient;  // Ambient term
+    vec4 cDiffuse;  // Diffuse term
+    vec4 cSpecular; // Specular term
+    float shininess;      // Specular exponent
+
+    vec4 cReflective; // Used to weight contribution of reflected ray lighting (via multiplication)
+
+    vec4 cTransparent; // Transparency;
+    float ior;               // Index of refraction
+
+
+};
+
+
+struct GPURenderShapeData {
+    GPUScenePrimitive primitive;
+    mat4 ctm;
     mat4 inverseCtm;
     int id; //index in original RenderShapeData vector
 
-    GPUShape() = default;
-    __host__ __device__ GPUShape(GPUPrimitiveType _type, const mat4& _inverseCtm)
-        : type(_type), inverseCtm(_inverseCtm) {}
+    GPURenderShapeData() = default;
+    __host__ __device__ GPURenderShapeData(GPUScenePrimitive _primitive, const mat4& _ctm,  const mat4& _inverseCtm)
+        : primitive(_primitive), ctm(_ctm),  inverseCtm(_inverseCtm) {}
 };
 
 #endif

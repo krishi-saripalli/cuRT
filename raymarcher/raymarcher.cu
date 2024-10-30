@@ -9,20 +9,81 @@
 #include "shader/shader.h"
 #include "utils/rgba.cuh"
 #include "kernel/render.cuh"
+#include "kernel/cudautils.cuh"
 
 
 #include <cuda_gl_interop.h>
 
 
 
-Raymarcher::Raymarcher(std::unique_ptr<Window> w) : window(std::move(w)) {
+Raymarcher::Raymarcher(std::unique_ptr<Window> w, const Scene& s) : window(std::move(w)), scene(s)  {
+    int width = scene.c_width, height = scene.c_height;
+    float distToViewPlane = 0.1f, aspectRatio = scene.getCamera().getAspectRatio(width,height);
+    float heightAngle = scene.getCamera().getHeightAngle();
+    Eigen::Matrix4f inverseViewMatrix = scene.getCamera().getViewMatrix().inverse();
+    float viewPlaneHeight = 2.f * distToViewPlane * std::tan(.5f*float(heightAngle));
+    float viewPlaneWidth = viewPlaneHeight * aspectRatio;
+
+    
+    //map PBO to CUDA
+    void* devPtr;
+    size_t numBytes;
+    gpuErrorCheck( cudaGraphicsMapResources(1, &cudaPboResource, 0) );
+    gpuErrorCheck( cudaGraphicsResourceGetMappedPointer(&devPtr,&numBytes,cudaPboResource) );
+    RGBA* deviceImageData = (RGBA*)devPtr;
+
+
+   
+    //allocate GPU shapes on the device
+    std::vector<GPUShape> hostShapes;
+    int numPrimitives = scene.metaData.shapes.size();
+    hostShapes.reserve(numPrimitives);
+
+    for ( const RenderShapeData& shapeData : scene.metaData.shapes) {
+        hostShapes.push_back(GPUShape{static_cast<GPUPrimitiveType>(shapeData.primitive.type), mat4(shapeData.inverseCtm.data())});
+    }
+    gpuErrorCheck( cudaMalloc(&deviceShapes, sizeof(GPUShape) * numPrimitives) );
+    gpuErrorCheck( cudaMemcpy(deviceShapes, hostShapes.data(), sizeof(GPUShape) * numPrimitives, cudaMemcpyHostToDevice) );
+
+
+    // allocate inverse view matrix on the device
+    mat4 hostInverseViewMat = mat4(inverseViewMatrix.data());
+    mat4* deviceInverseViewMat;
+    gpuErrorCheck( cudaMalloc(&deviceInverseViewMat, sizeof(mat4)) );
+    gpuErrorCheck( cudaMemcpy(deviceInverseViewMat, &hostInverseViewMat, sizeof(mat4), cudaMemcpyHostToDevice) );
+
+
+
+    // allocate constants on the device
+    gpuErrorCheck( cudaMalloc(&deviceWidth, sizeof(int)) );
+    gpuErrorCheck( cudaMalloc(&deviceHeight, sizeof(int)) );
+    gpuErrorCheck( cudaMalloc(&deviceNumPrimitives, sizeof(int)) );
+    gpuErrorCheck( cudaMalloc(&deviceViewPlaneHeight, sizeof(float)) );
+    gpuErrorCheck( cudaMalloc(&deviceViewPlaneWidth, sizeof(float)) );
+
+    gpuErrorCheck( cudaMemcpy(deviceWidth, &width, sizeof(int), cudaMemcpyHostToDevice) );
+    gpuErrorCheck( cudaMemcpy(deviceHeight, &height, sizeof(int), cudaMemcpyHostToDevice) );
+    gpuErrorCheck( cudaMemcpy(deviceNumPrimitives, &numPrimitives, sizeof(int), cudaMemcpyHostToDevice) );
+    gpuErrorCheck( cudaMemcpy(deviceViewPlaneWidth, &viewPlaneWidth, sizeof(float), cudaMemcpyHostToDevice) );
+    gpuErrorCheck( cudaMemcpy(deviceViewPlaneHeight, &viewPlaneHeight, sizeof(float), cudaMemcpyHostToDevice) );
+
+
     
 }
 
 Raymarcher::~Raymarcher() {
     if (cudaPboResource) {
-        cudaGraphicsUnregisterResource(cudaPboResource);
-        std::cout << "cudaPboResource Unregistered!" << std::endl;
+        gpuErrorCheck( cudaFree(deviceImageData) );
+        gpuErrorCheck( cudaFree(deviceShapes) );
+        gpuErrorCheck( cudaFree(deviceInverseViewMat) );
+        gpuErrorCheck( cudaFree(deviceWidth) );
+        gpuErrorCheck( cudaFree(deviceHeight) );
+        gpuErrorCheck( cudaFree(deviceNumPrimitives) );
+        gpuErrorCheck( cudaFree(deviceViewPlaneWidth) );
+        gpuErrorCheck( cudaFree(deviceViewPlaneHeight) );
+        gpuErrorCheck( cudaGraphicsUnmapResources(1, &cudaPboResource, 0) );
+        gpuErrorCheck( cudaGraphicsUnregisterResource(cudaPboResource) );
+        std::cout << "Raymarcher Cleaned Up!" << std::endl;
     }
 }
 
@@ -71,69 +132,12 @@ void Raymarcher::run(const Scene& scene) {
 }
 
 void Raymarcher::render(const Scene& scene) {
-
-    int width = scene.c_width, height = scene.c_height;
-    float distToViewPlane = 0.1f, aspectRatio = scene.getCamera().getAspectRatio(width,height);
-    float heightAngle = scene.getCamera().getHeightAngle();
-    Eigen::Matrix4f inverseViewMatrix = scene.getCamera().getViewMatrix().inverse();
-    float viewPlaneHeight = 2.f * distToViewPlane * std::tan(.5f*float(heightAngle));
-    float viewPlaneWidth = viewPlaneHeight * aspectRatio;
-
-    
-    //map PBO to CUDA
-    void* devPtr;
-    size_t numBytes;
-    cudaGraphicsMapResources(1, &cudaPboResource, 0);
-    cudaGraphicsResourceGetMappedPointer(&devPtr,&numBytes,cudaPboResource);
-    RGBA* deviceImageData = (RGBA*)devPtr;
-
-
-   
-    //allocate GPU shapes on the device
-    std::vector<GPUShape> hostShapes;
-    GPUShape *deviceShapes;
-    int numPrimitives = scene.metaData.shapes.size();
-    hostShapes.reserve(numPrimitives);
-
-    for ( const RenderShapeData& shapeData : scene.metaData.shapes) {
-        hostShapes.push_back(GPUShape{static_cast<GPUPrimitiveType>(shapeData.primitive.type), mat4(shapeData.inverseCtm.data())});
-    }
-    cudaMalloc(&deviceShapes, sizeof(GPUShape) * numPrimitives);
-    cudaMemcpy(deviceShapes, hostShapes.data(), sizeof(GPUShape) * numPrimitives, cudaMemcpyHostToDevice);
-
-
-    // allocate inverse view matrix on the device
-    mat4 hostInverseViewMat = mat4(inverseViewMatrix.data());
-    mat4* deviceInverseViewMat;
-    cudaMalloc(&deviceInverseViewMat, sizeof(mat4));
-    cudaMemcpy(deviceInverseViewMat, &hostInverseViewMat, sizeof(mat4), cudaMemcpyHostToDevice);
-
-    int *deviceWidth, *deviceHeight, *deviceNumPrimitives;
-    float *deviceViewPlaneWidth, *deviceViewPlaneHeight;
-
-
-    // allocate constants on the device
-    cudaMalloc(&deviceWidth, sizeof(int));
-    cudaMalloc(&deviceHeight, sizeof(int));
-    cudaMalloc(&deviceNumPrimitives, sizeof(int));
-    cudaMalloc(&deviceViewPlaneHeight, sizeof(float));
-    cudaMalloc(&deviceViewPlaneWidth, sizeof(float));
-
-    cudaMemcpy(deviceWidth, &width, sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(deviceHeight, &height, sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(deviceNumPrimitives, &numPrimitives, sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(deviceViewPlaneWidth, &viewPlaneWidth, sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(deviceViewPlaneHeight, &viewPlaneHeight, sizeof(float), cudaMemcpyHostToDevice);
-
-
     dim3 blockSize(16,16);
     dim3 gridSize(
         (width + blockSize.x - 1) / blockSize.x,
         (height + blockSize.y - 1) / blockSize.y
     ); // number of blocks
 
-
-   
     renderKernel<<<gridSize,blockSize>>>(
         deviceImageData,
         deviceShapes,
@@ -144,28 +148,18 @@ void Raymarcher::render(const Scene& scene) {
         deviceViewPlaneWidth,
         deviceViewPlaneHeight
     );
-
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-        std::cerr << "Kernel launch failed: " << cudaGetErrorString(err) << std::endl;
+        std::cerr << "CUDA Kernel launch failed: " << cudaGetErrorString(err) << std::endl;
     }
+    gpuErrorCheck( cudaDeviceSynchronize() );
+
     
-    // synchronize
-    cudaDeviceSynchronize();
-
-    // unmap CUDA resource
-    cudaGraphicsUnmapResources(1, &cudaPboResource, 0);
-
     // update texture from PBO
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-
-    cudaFree(deviceShapes);
-    cudaFree(deviceInverseViewMat);
-    cudaFree(deviceWidth);
-    cudaFree(deviceHeight);
 
 }
 

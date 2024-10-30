@@ -1,5 +1,5 @@
 #ifndef CUDA_UTILS_CUH
-#define CUDA_UTILS_CUH
+#define  
 
 #include <cuda_runtime.h>
 #include <stdio.h>
@@ -13,7 +13,7 @@ inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=
    }
 }
 
-#define cudaCheckError(ans) { cudaAssert((ans), __FILE__, __LINE__); }
+#define gpuErrorCheck(ans) { cudaAssert((ans), __FILE__, __LINE__); }
 
 
 #endif
