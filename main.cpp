@@ -87,13 +87,13 @@ int main(int argc, char *argv[])
 
 
     std::unique_ptr<Window> window(new Window(width, height, "THE CLAW"));
-    Raymarcher raymarcher{std::move(window)};
     const Scene scene{width, height, metaData};
 
     TextureQuad quad = setupTextureDisplayQuad(scene.getCamera().getAspectRatio(width,height));
     auto [texture, pbo] = createTexture(width,height,4);
+
+    Raymarcher raymarcher{std::move(window),scene, pbo};
     raymarcher.setTexture(texture);
-    raymarcher.setPbo(pbo);
 
     GLuint shader = createShader();
     raymarcher.setShader(shader);
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 
 
     try {
-        raymarcher.run(scene);
+        raymarcher.run();
     } catch (const std::exception &e) {
         std::cerr << e.what() << '\n';
         return EXIT_FAILURE;

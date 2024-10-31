@@ -4,6 +4,11 @@
 #include <cuda_runtime.h>
 #include "vec3.cuh"
 
+struct vec2 {
+    float x, y;
+    __device__ vec2(float x_, float y_) : x(x_), y(y_) {}
+};
+
 __device__ float distToCube(const vec3& p) {
     const vec3 b(0.5f, 0.5f, 0.5f);
     // create q vector (absolute value of p minus b)
@@ -47,7 +52,7 @@ __device__ float distToCone(const vec3& p) {
 
     vec3 pTranslated = p - vec3(0.0f, 0.5f, 0.0f);
     
-    vec2 q = h * vec2(c.x / c.y, -1.0f);
+    vec2 q =  vec2(h * c.x / c.y, h * -1.0f);
     vec2 w(sqrtf(pTranslated.x() * pTranslated.x() + pTranslated.z() * pTranslated.z()),
            pTranslated.y());
     
@@ -67,10 +72,6 @@ __device__ float distToCone(const vec3& p) {
     return sqrtf(d) * copysignf(1.0f, s);
 }
 
-// Helper struct for 2D vectors
-struct vec2 {
-    float x, y;
-    __device__ vec2(float x_, float y_) : x(x_), y(y_) {}
-};
+
 
 #endif

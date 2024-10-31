@@ -1,5 +1,5 @@
 #ifndef CUDA_UTILS_CUH
-#define  
+#define CUDA_UTILS_CUH
 
 #include <cuda_runtime.h>
 #include <stdio.h>

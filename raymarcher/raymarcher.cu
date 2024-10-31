@@ -8,15 +8,24 @@
 #include "raymarcher/distance.h"
 #include "shader/shader.h"
 #include "utils/rgba.cuh"
-#include "kernel/render.cuh"
-#include "kernel/cudautils.cuh"
+#include "../kernel/render.cuh"
+#include "../kernel/renderdata.cuh"
+#include "../kernel/cudautils.cuh"
+#include "../kernel/distance.cuh"
 
 
 #include <cuda_gl_interop.h>
 
 
 
-Raymarcher::Raymarcher(std::unique_ptr<Window> w, const Scene& s) : window(std::move(w)), scene(s)  {
+Raymarcher::Raymarcher(std::unique_ptr<Window> w, const Scene& s, GLuint p) : window(std::move(w)), scene(s)  {
+
+    //register PBO
+    pbo = p;
+    //last arg says that we intend on overwriting the contexts of the pbo     
+    gpuErrorCheck( cudaGraphicsGLRegisterBuffer(&cudaPboResource, pbo, cudaGraphicsMapFlagsWriteDiscard) );
+
+
     int width = scene.c_width, height = scene.c_height;
     float distToViewPlane = 0.1f, aspectRatio = scene.getCamera().getAspectRatio(width,height);
     float heightAngle = scene.getCamera().getHeightAngle();
@@ -24,46 +33,29 @@ Raymarcher::Raymarcher(std::unique_ptr<Window> w, const Scene& s) : window(std::
     float viewPlaneHeight = 2.f * distToViewPlane * std::tan(.5f*float(heightAngle));
     float viewPlaneWidth = viewPlaneHeight * aspectRatio;
 
-    
-    //map PBO to CUDA
+    //map deviceImage to point to the PBO
     void* devPtr;
     size_t numBytes;
     gpuErrorCheck( cudaGraphicsMapResources(1, &cudaPboResource, 0) );
     gpuErrorCheck( cudaGraphicsResourceGetMappedPointer(&devPtr,&numBytes,cudaPboResource) );
-    RGBA* deviceImageData = (RGBA*)devPtr;
+    deviceImageData = (RGBA*)devPtr;
 
-
-   
     //allocate GPU shapes on the device
-    std::vector<GPUShape> hostShapes;
-    int numPrimitives = scene.metaData.shapes.size();
-    hostShapes.reserve(numPrimitives);
-
-    for ( const RenderShapeData& shapeData : scene.metaData.shapes) {
-        hostShapes.push_back(GPUShape{static_cast<GPUPrimitiveType>(shapeData.primitive.type), mat4(shapeData.inverseCtm.data())});
-    }
-    gpuErrorCheck( cudaMalloc(&deviceShapes, sizeof(GPUShape) * numPrimitives) );
-    gpuErrorCheck( cudaMemcpy(deviceShapes, hostShapes.data(), sizeof(GPUShape) * numPrimitives, cudaMemcpyHostToDevice) );
-
+    allocateDeviceRenderData();
 
     // allocate inverse view matrix on the device
     mat4 hostInverseViewMat = mat4(inverseViewMatrix.data());
-    mat4* deviceInverseViewMat;
     gpuErrorCheck( cudaMalloc(&deviceInverseViewMat, sizeof(mat4)) );
     gpuErrorCheck( cudaMemcpy(deviceInverseViewMat, &hostInverseViewMat, sizeof(mat4), cudaMemcpyHostToDevice) );
-
-
 
     // allocate constants on the device
     gpuErrorCheck( cudaMalloc(&deviceWidth, sizeof(int)) );
     gpuErrorCheck( cudaMalloc(&deviceHeight, sizeof(int)) );
-    gpuErrorCheck( cudaMalloc(&deviceNumPrimitives, sizeof(int)) );
     gpuErrorCheck( cudaMalloc(&deviceViewPlaneHeight, sizeof(float)) );
     gpuErrorCheck( cudaMalloc(&deviceViewPlaneWidth, sizeof(float)) );
 
     gpuErrorCheck( cudaMemcpy(deviceWidth, &width, sizeof(int), cudaMemcpyHostToDevice) );
     gpuErrorCheck( cudaMemcpy(deviceHeight, &height, sizeof(int), cudaMemcpyHostToDevice) );
-    gpuErrorCheck( cudaMemcpy(deviceNumPrimitives, &numPrimitives, sizeof(int), cudaMemcpyHostToDevice) );
     gpuErrorCheck( cudaMemcpy(deviceViewPlaneWidth, &viewPlaneWidth, sizeof(float), cudaMemcpyHostToDevice) );
     gpuErrorCheck( cudaMemcpy(deviceViewPlaneHeight, &viewPlaneHeight, sizeof(float), cudaMemcpyHostToDevice) );
 
@@ -72,22 +64,122 @@ Raymarcher::Raymarcher(std::unique_ptr<Window> w, const Scene& s) : window(std::
 }
 
 Raymarcher::~Raymarcher() {
-    if (cudaPboResource) {
-        gpuErrorCheck( cudaFree(deviceImageData) );
-        gpuErrorCheck( cudaFree(deviceShapes) );
-        gpuErrorCheck( cudaFree(deviceInverseViewMat) );
-        gpuErrorCheck( cudaFree(deviceWidth) );
-        gpuErrorCheck( cudaFree(deviceHeight) );
-        gpuErrorCheck( cudaFree(deviceNumPrimitives) );
-        gpuErrorCheck( cudaFree(deviceViewPlaneWidth) );
-        gpuErrorCheck( cudaFree(deviceViewPlaneHeight) );
-        gpuErrorCheck( cudaGraphicsUnmapResources(1, &cudaPboResource, 0) );
-        gpuErrorCheck( cudaGraphicsUnregisterResource(cudaPboResource) );
-        std::cout << "Raymarcher Cleaned Up!" << std::endl;
-    }
+    gpuErrorCheck( cudaFree(deviceLights) );
+    gpuErrorCheck( cudaFree(deviceShapes) );
+    gpuErrorCheck( cudaFree(deviceRenderData) );
+    gpuErrorCheck( cudaFree(deviceInverseViewMat) );
+    gpuErrorCheck( cudaFree(deviceWidth) );
+    gpuErrorCheck( cudaFree(deviceHeight) );
+
+    gpuErrorCheck( cudaFree(deviceViewPlaneWidth) );
+    gpuErrorCheck( cudaFree(deviceViewPlaneHeight) );
+    gpuErrorCheck( cudaGraphicsUnmapResources(1, &cudaPboResource, 0) );
+    gpuErrorCheck( cudaGraphicsUnregisterResource(cudaPboResource) );
+    std::cout << "Raymarcher Cleaned Up!" << std::endl;  
 }
 
-void Raymarcher::run(const Scene& scene) {
+void Raymarcher::allocateDeviceRenderData() {
+    GPURenderData hostRenderData;
+
+    //global data
+    hostRenderData.globalData = GPUSceneGlobalData(scene.globalData);
+
+    //camera data
+    hostRenderData.cameraData.pos = vec4(scene.cameraData.pos.data());
+    hostRenderData.cameraData.look = vec4(scene.cameraData.look.data());
+    hostRenderData.cameraData.up = vec4(scene.cameraData.up.data());
+    hostRenderData.cameraData.heightAngle = scene.cameraData.heightAngle;
+    hostRenderData.cameraData.aperture = scene.cameraData.aperture;
+    hostRenderData.cameraData.focalLength = scene.cameraData.focalLength;
+
+    //array sizes
+    hostRenderData.numLights = scene.metaData.lights.size();
+    hostRenderData.numShapes = scene.metaData.shapes.size();
+
+    GPUSceneLightData* hostLights = new GPUSceneLightData[hostRenderData.numLights];
+    GPURenderShapeData* hostShapes = new GPURenderShapeData[hostRenderData.numShapes];
+
+
+    //copy lights
+    for (int i = 0; i < hostRenderData.numLights; ++i) {
+        const SceneLightData& cpuLight = scene.metaData.lights[i];
+        hostLights[i].id = cpuLight.id;
+        hostLights[i].type = static_cast<GPULightType>(cpuLight.type);
+        hostLights[i].color = vec4(cpuLight.color.data());
+        hostLights[i].function = vec3(cpuLight.function.data());
+        hostLights[i].pos = vec4(cpuLight.pos.data());
+        hostLights[i].dir = vec4(cpuLight.dir.data());
+        hostLights[i].penumbra = cpuLight.penumbra;
+        hostLights[i].angle = cpuLight.angle;
+    }
+
+
+    //copy shapes
+    for (int i = 0; i < hostRenderData.numShapes; ++i) {
+        const RenderShapeData& cpuShape = scene.metaData.shapes[i];
+        GPUScenePrimitive gpuPrimitive;
+        gpuPrimitive.type = static_cast<GPUPrimitiveType>(cpuShape.primitive.type);
+        
+        GPUSceneMaterial& gpuMaterial = gpuPrimitive.material;
+        const SceneMaterial& cpuMaterial = cpuShape.primitive.material;
+        
+        gpuMaterial.cAmbient = vec4(cpuMaterial.cAmbient.data());
+        gpuMaterial.cDiffuse = vec4(cpuMaterial.cDiffuse.data());
+        gpuMaterial.cSpecular = vec4(cpuMaterial.cSpecular.data());
+        gpuMaterial.shininess = cpuMaterial.shininess;
+        gpuMaterial.cReflective = vec4(cpuMaterial.cReflective.data());
+        gpuMaterial.cTransparent = vec4(cpuMaterial.cTransparent.data());
+        gpuMaterial.ior = cpuMaterial.ior;
+
+        // set function pointers
+        switch(gpuPrimitive.type) {
+            case GPUPrimitiveType::PRIMITIVE_CUBE:
+                gpuPrimitive.distanceFunction = &distToCube;
+                break;
+            case GPUPrimitiveType::PRIMITIVE_SPHERE:
+                gpuPrimitive.distanceFunction = &distToSphere;
+                break;
+            case GPUPrimitiveType::PRIMITIVE_CYLINDER:
+                gpuPrimitive.distanceFunction = &distToCylinder;
+                break;
+            case GPUPrimitiveType::PRIMITIVE_CONE:
+                gpuPrimitive.distanceFunction = &distToCone;
+                break;
+            default:
+                throw std::runtime_error("Primitve not implemented");
+                break;
+        }
+        // set shape data
+        hostShapes[i] = GPURenderShapeData(
+            gpuPrimitive,
+            mat4(cpuShape.ctm.data()),
+            mat4(cpuShape.inverseCtm.data())
+        );
+    }
+
+    //allocate device shapes and lights
+    gpuErrorCheck( cudaMalloc(&deviceLights, hostRenderData.numLights * sizeof(GPUSceneLightData)) );
+    gpuErrorCheck( cudaMalloc(&deviceShapes, hostRenderData.numShapes * sizeof(GPURenderShapeData)) );
+    gpuErrorCheck( cudaMemcpy(deviceLights, hostLights, 
+           hostRenderData.numLights * sizeof(GPUSceneLightData), 
+           cudaMemcpyHostToDevice) );
+    gpuErrorCheck( cudaMemcpy(deviceShapes, hostShapes, 
+            hostRenderData.numShapes * sizeof(GPURenderShapeData), 
+            cudaMemcpyHostToDevice) );
+
+    hostRenderData.lights = deviceLights;
+    hostRenderData.shapes = deviceShapes;
+
+    //allocate device GPURenderData
+    gpuErrorCheck( cudaMalloc(&deviceRenderData, sizeof(GPURenderData)) );
+    gpuErrorCheck( cudaMemcpy(deviceRenderData, &hostRenderData, sizeof(GPURenderData), cudaMemcpyHostToDevice) );
+
+    //free host arrays
+    delete[] hostLights;
+    delete[] hostShapes;
+}
+
+void Raymarcher::run() {
 
     if (glfwGetCurrentContext() == nullptr) {
         std::cerr << "Error: No OpenGL context" << std::endl;
@@ -104,7 +196,7 @@ void Raymarcher::run(const Scene& scene) {
         }
 
         //TODO: add some conditional logic (only when event handlers receive something)
-        render(scene);
+        render();
 
 
         glUseProgram(shaderProgram);
@@ -131,7 +223,9 @@ void Raymarcher::run(const Scene& scene) {
     }
 }
 
-void Raymarcher::render(const Scene& scene) {
+void Raymarcher::render() {
+
+    int width = scene.c_width, height = scene.c_height;
     dim3 blockSize(16,16);
     dim3 gridSize(
         (width + blockSize.x - 1) / blockSize.x,
@@ -140,11 +234,10 @@ void Raymarcher::render(const Scene& scene) {
 
     renderKernel<<<gridSize,blockSize>>>(
         deviceImageData,
-        deviceShapes,
+        deviceRenderData,
         deviceInverseViewMat,
         deviceWidth,
         deviceHeight,
-        deviceNumPrimitives,
         deviceViewPlaneWidth,
         deviceViewPlaneHeight
     );
@@ -163,69 +256,69 @@ void Raymarcher::render(const Scene& scene) {
 
 }
 
-RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, const Eigen::Vector4f& p, const Eigen::Vector4f& d) {
+// RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, const Eigen::Vector4f& p, const Eigen::Vector4f& d) {
     
-    float distTravelled = 0.f;
-    const int NUMBER_OF_STEPS = 1000;
-    const float EPSILON = 1e-4;
-    const float MAX_DISTANCE = 1000.0f;
+//     float distTravelled = 0.f;
+//     const int NUMBER_OF_STEPS = 1000;
+//     const float EPSILON = 1e-4;
+//     const float MAX_DISTANCE = 1000.0f;
 
-    for (int i = 0; i < NUMBER_OF_STEPS; ++i) {
+//     for (int i = 0; i < NUMBER_OF_STEPS; ++i) {
 
-        //March our (world space) position forward by distance travelled
-        Eigen::Vector4f currPos = p + (distTravelled * d);
+//         //March our (world space) position forward by distance travelled
+//         Eigen::Vector4f currPos = p + (distTravelled * d);
 
-        //Find the closest intersection in the scene
-        Hit closestHit = getClosestHit(scene,currPos);
+//         //Find the closest intersection in the scene
+//         Hit closestHit = getClosestHit(scene,currPos);
 
-        distTravelled += closestHit.distance;
+//         distTravelled += closestHit.distance;
 
         
-        if (closestHit.distance <= EPSILON) {
+//         if (closestHit.distance <= EPSILON) {
             
-            Eigen::Vector3f normal = closestHit.normal;
+//             Eigen::Vector3f normal = closestHit.normal;
 
-            // Shift normal values from [-1,1] to [0,1]
-            return RGBA{
-                (std::uint8_t)(255.f * (normal.x() + 1.f) / 2.f),  
-                (std::uint8_t)(255.f * (normal.y() + 1.f) / 2.f), 
-                (std::uint8_t)(255.f * (normal.z() + 1.f) / 2.f)
-            };
-        }
+//             // Shift normal values from [-1,1] to [0,1]
+//             return RGBA{
+//                 (std::uint8_t)(255.f * (normal.x() + 1.f) / 2.f),  
+//                 (std::uint8_t)(255.f * (normal.y() + 1.f) / 2.f), 
+//                 (std::uint8_t)(255.f * (normal.z() + 1.f) / 2.f)
+//             };
+//         }
 
-        if (distTravelled > MAX_DISTANCE) break; 
-    }
-    return originalColor;  
-}
+//         if (distTravelled > MAX_DISTANCE) break; 
+//     }
+//     return originalColor;  
+// }
 
-Hit Raymarcher::getClosestHit(const Scene& scene, const Eigen::Vector4f& pos) {
+// Hit Raymarcher::getClosestHit(const Scene& scene, const Eigen::Vector4f& pos) {
 
-    float minDistance = __FLT_MAX__;
-    Eigen::Vector4f objectSpacePos;
-    Hit closestHit{nullptr, minDistance};
+//     float minDistance = __FLT_MAX__;
+//     Eigen::Vector4f objectSpacePos;
+//     Hit closestHit{nullptr, minDistance};
 
-    for ( const RenderShapeData& shapeData : scene.metaData.shapes) {
+//     for ( const RenderShapeData& shapeData : scene.metaData.shapes) {
 
-        //Transform our position to object space using the shape's inverse CTM
-        objectSpacePos = shapeData.inverseCtm * pos;
+//         //Transform our position to object space using the shape's inverse CTM
+//         objectSpacePos = shapeData.inverseCtm * pos;
 
-        float shapeDistance = getShapeDistance(shapeData,objectSpacePos);
+//         float shapeDistance = getShapeDistance(shapeData,objectSpacePos);
 
-        if (shapeDistance < minDistance) {
-            minDistance = shapeDistance;
-            closestHit = Hit{&shapeData, minDistance};
-        }
+//         if (shapeDistance < minDistance) {
+//             minDistance = shapeDistance;
+//             closestHit = Hit{&shapeData, minDistance};
+//         }
 
-    }
-    //Store the normal of the point
-    objectSpacePos = closestHit.shapeData->inverseCtm * pos;
-    closestHit.normal = calculateNormal(*(closestHit.shapeData),objectSpacePos.head(3));
-    return closestHit;
+//     }
+//     //Store the normal of the point
+//     objectSpacePos = closestHit.shapeData->inverseCtm * pos;
+//     closestHit.normal = calculateNormal(*(closestHit.shapeData),objectSpacePos.head(3));
+//     return closestHit;
 
-}
+// }
 
-float Raymarcher::getShapeDistance(const RenderShapeData& shapeData, const Eigen::Vector4f& pos) {
-    return shapeData.primitive.distance(pos.head(3));
-}
+// float Raymarcher::getShapeDistance(const RenderShapeData& shapeData, const Eigen::Vector4f& pos) {
+//     return shapeData.primitive.distance(pos.head(3));
+// }
 
 

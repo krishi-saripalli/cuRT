@@ -16,19 +16,6 @@ enum class GPUPrimitiveType {
     PRIMITIVE_MESH
 };
 
-
-struct GPUScenePrimitive {
-    GPUPrimitiveType type;
-    GPUSceneMaterial material;
-    GPUDistanceFunction distanceFunction;
-
-    
-    float distance(const vec3& p) const {
-        return distanceFunction(p);
-    }
-
-}
-
 struct GPUSceneMaterial {
     vec4 cAmbient;  // Ambient term
     vec4 cDiffuse;  // Diffuse term
@@ -43,12 +30,23 @@ struct GPUSceneMaterial {
 
 };
 
+struct GPUScenePrimitive {
+    GPUPrimitiveType type;
+    GPUSceneMaterial material;
+    GPUDistanceFunction distanceFunction;
+
+    
+    float distance(const vec3& p) const {
+        return distanceFunction(p);
+    }
+
+};
+
 
 struct GPURenderShapeData {
     GPUScenePrimitive primitive;
     mat4 ctm;
     mat4 inverseCtm;
-    int id; //index in original RenderShapeData vector
 
     GPURenderShapeData() = default;
     __host__ __device__ GPURenderShapeData(GPUScenePrimitive _primitive, const mat4& _ctm,  const mat4& _inverseCtm)

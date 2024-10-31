@@ -6,7 +6,8 @@
 #include "scene.h"
 #include "../window/window.h"
 #include "../kernel/cudautils.cuh"
-#include "hit.h"
+#include "../kernel/renderdata.cuh"
+#include "../kernel/shape.cuh"
 
 #include <cuda_gl_interop.h>
 
@@ -14,7 +15,7 @@
 class Raymarcher {
 
     public:
-        Raymarcher(std::unique_ptr<Window> w, const Scene& s);
+        Raymarcher(std::unique_ptr<Window> w, const Scene& s, GLuint p);
         ~Raymarcher();
         void run();
         void render();
@@ -36,12 +37,7 @@ class Raymarcher {
             texture = t;
         }
 
-        void setPbo(GLuint p) {
-            pbo = p;
-            //last arg says that we intend on overwriting the contexts of the pbo
-            cudaError_t err = gpuErrorCheck( cudaGraphicsGLRegisterBuffer(&cudaPboResource, pbo, cudaGraphicsMapFlagsWriteDiscard) );
-         
-        }
+
 
 
     private:
@@ -56,18 +52,20 @@ class Raymarcher {
         //device resources
         cudaGraphicsResource_t cudaPboResource;
         RGBA* deviceImageData;
-        GPUShape* deviceShapes;
+        GPURenderData* deviceRenderData;
+        GPUSceneLightData* deviceLights;
+        GPURenderShapeData* deviceShapes;
         mat4* deviceInverseViewMat;
         int* deviceWidth;
         int* deviceHeight;
-        int* deviceNumPrimitives;
         float* deviceViewPlaneWidth;
         float* deviceViewPlaneHeight;
 
 
-        RGBA marchRay(const Scene& scene, const RGBA originalColor, const Eigen::Vector4f& p, const Eigen::Vector4f& d);
-        Hit getClosestHit(const Scene& scene, const Eigen::Vector4f& pos);
-        float getShapeDistance(const RenderShapeData& shapeData, const Eigen::Vector4f& pos);
+        void allocateDeviceRenderData();
+        // RGBA marchRay(const Scene& scene, const RGBA originalColor, const Eigen::Vector4f& p, const Eigen::Vector4f& d);
+        // Hit getClosestHit(const Scene& scene, const Eigen::Vector4f& pos);
+        // float getShapeDistance(const RenderShapeData& shapeData, const Eigen::Vector4f& pos);
 
 
 
