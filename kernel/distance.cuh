@@ -9,7 +9,7 @@ struct vec2 {
     __device__ vec2(float x_, float y_) : x(x_), y(y_) {}
 };
 
-__device__ float distToCube(const vec3& p) {
+inline __device__ float distToCube(const vec3& p) {
     const vec3 b(0.5f, 0.5f, 0.5f);
     // create q vector (absolute value of p minus b)
     vec3 q(fabsf(p.x()) - b.x(), 
@@ -27,12 +27,12 @@ __device__ float distToCube(const vec3& p) {
     return qMax.length() + fminf(maxComp, 0.0f);
 }
 
-__device__ float distToSphere(const vec3& p) {
+inline __device__ float distToSphere(const vec3& p) {
     const float radius = 0.5f;
     return p.length() - radius;
 }
 
-__device__ float distToCylinder(const vec3& p) {
+inline __device__ float distToCylinder(const vec3& p) {
     const float h = 1.f, r = 0.5f;
     
     float xzLen = sqrtf(p.x() * p.x() + p.z() * p.z());
@@ -44,7 +44,7 @@ __device__ float distToCylinder(const vec3& p) {
            sqrtf(d.x * d.x + d.y * d.y);
 }
 
-__device__ float distToCone(const vec3& p) {
+inline __device__ float distToCone(const vec3& p) {
     const float h = 1.0f, r = 0.5f;
     const float angle = atan2f(r, h);
     const vec2 c(sinf(angle), cosf(angle));
@@ -71,7 +71,6 @@ __device__ float distToCone(const vec3& p) {
     
     return sqrtf(d) * copysignf(1.0f, s);
 }
-
 
 
 #endif

@@ -18,6 +18,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_OSX_ARCHITECTURES "arm64")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -G -g")
 
 # Look up the right value for your hardware at https://developer.nvidia.com/cuda-gpus#compute
 set(CMAKE_CUDA_ARCHITECTURES 86)

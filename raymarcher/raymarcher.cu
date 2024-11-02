@@ -5,7 +5,6 @@
 #include <cuda_runtime.h>
 
 #include "raymarcher/raymarcher.h"
-#include "raymarcher/distance.h"
 #include "shader/shader.h"
 #include "utils/rgba.cuh"
 #include "../kernel/render.cuh"
@@ -15,8 +14,6 @@
 
 
 #include <cuda_gl_interop.h>
-
-
 
 Raymarcher::Raymarcher(std::unique_ptr<Window> w, const Scene& s, GLuint p) : window(std::move(w)), scene(s)  {
 
@@ -29,6 +26,8 @@ Raymarcher::Raymarcher(std::unique_ptr<Window> w, const Scene& s, GLuint p) : wi
     int width = scene.c_width, height = scene.c_height;
     float distToViewPlane = 0.1f, aspectRatio = scene.getCamera().getAspectRatio(width,height);
     float heightAngle = scene.getCamera().getHeightAngle();
+
+    
     Eigen::Matrix4f inverseViewMatrix = scene.getCamera().getViewMatrix().inverse();
     float viewPlaneHeight = 2.f * distToViewPlane * std::tan(.5f*float(heightAngle));
     float viewPlaneWidth = viewPlaneHeight * aspectRatio;
@@ -116,44 +115,36 @@ void Raymarcher::allocateDeviceRenderData() {
 
     //copy shapes
     for (int i = 0; i < hostRenderData.numShapes; ++i) {
-        const RenderShapeData& cpuShape = scene.metaData.shapes[i];
-        GPUScenePrimitive gpuPrimitive;
-        gpuPrimitive.type = static_cast<GPUPrimitiveType>(cpuShape.primitive.type);
-        
-        GPUSceneMaterial& gpuMaterial = gpuPrimitive.material;
+        const RenderShapeData cpuShape = scene.metaData.shapes[i];
         const SceneMaterial& cpuMaterial = cpuShape.primitive.material;
         
-        gpuMaterial.cAmbient = vec4(cpuMaterial.cAmbient.data());
-        gpuMaterial.cDiffuse = vec4(cpuMaterial.cDiffuse.data());
-        gpuMaterial.cSpecular = vec4(cpuMaterial.cSpecular.data());
-        gpuMaterial.shininess = cpuMaterial.shininess;
-        gpuMaterial.cReflective = vec4(cpuMaterial.cReflective.data());
-        gpuMaterial.cTransparent = vec4(cpuMaterial.cTransparent.data());
-        gpuMaterial.ior = cpuMaterial.ior;
+        GPUSceneMaterial gpuMaterial(
+        vec4(cpuMaterial.cAmbient.data()),
+        vec4(cpuMaterial.cDiffuse.data()),
+        vec4(cpuMaterial.cSpecular.data()),
+        cpuMaterial.shininess,
+        vec4(cpuMaterial.cReflective.data()),
+        vec4(cpuMaterial.cTransparent.data()),
+        cpuMaterial.ior);
 
-        // set function pointers
-        switch(gpuPrimitive.type) {
-            case GPUPrimitiveType::PRIMITIVE_CUBE:
-                gpuPrimitive.distanceFunction = &distToCube;
-                break;
-            case GPUPrimitiveType::PRIMITIVE_SPHERE:
-                gpuPrimitive.distanceFunction = &distToSphere;
-                break;
-            case GPUPrimitiveType::PRIMITIVE_CYLINDER:
-                gpuPrimitive.distanceFunction = &distToCylinder;
-                break;
-            case GPUPrimitiveType::PRIMITIVE_CONE:
-                gpuPrimitive.distanceFunction = &distToCone;
-                break;
-            default:
-                throw std::runtime_error("Primitve not implemented");
-                break;
-        }
+        GPUScenePrimitive gpuPrimitive(
+            static_cast<GPUPrimitiveType>(cpuShape.primitive.type),
+            gpuMaterial
+        );
+
+        printf("CPU primitive type: %d\n", cpuShape.primitive.type);
+        printf("GPU primitive type: %d\n", gpuPrimitive.type);
+
+        
+
         // set shape data
+        Eigen::Matrix4f ctm = cpuShape.ctm;
+        Eigen::Matrix3f inverseTransposeCtm = ctm.block<3,3>(0,0).inverse().transpose();
         hostShapes[i] = GPURenderShapeData(
             gpuPrimitive,
-            mat4(cpuShape.ctm.data()),
-            mat4(cpuShape.inverseCtm.data())
+            mat4(ctm.data()),
+            mat4(cpuShape.inverseCtm.data()),
+            mat3(inverseTransposeCtm.data())
         );
     }
 
@@ -245,7 +236,7 @@ void Raymarcher::render() {
     if (err != cudaSuccess) {
         std::cerr << "CUDA Kernel launch failed: " << cudaGetErrorString(err) << std::endl;
     }
-    gpuErrorCheck( cudaDeviceSynchronize() );
+    gpuErrorCheck( cudaDeviceSynchronize());
 
     
     // update texture from PBO
@@ -255,70 +246,3 @@ void Raymarcher::render() {
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
 }
-
-// RGBA Raymarcher::marchRay(const Scene& scene, const RGBA originalColor, const Eigen::Vector4f& p, const Eigen::Vector4f& d) {
-    
-//     float distTravelled = 0.f;
-//     const int NUMBER_OF_STEPS = 1000;
-//     const float EPSILON = 1e-4;
-//     const float MAX_DISTANCE = 1000.0f;
-
-//     for (int i = 0; i < NUMBER_OF_STEPS; ++i) {
-
-//         //March our (world space) position forward by distance travelled
-//         Eigen::Vector4f currPos = p + (distTravelled * d);
-
-//         //Find the closest intersection in the scene
-//         Hit closestHit = getClosestHit(scene,currPos);
-
-//         distTravelled += closestHit.distance;
-
-        
-//         if (closestHit.distance <= EPSILON) {
-            
-//             Eigen::Vector3f normal = closestHit.normal;
-
-//             // Shift normal values from [-1,1] to [0,1]
-//             return RGBA{
-//                 (std::uint8_t)(255.f * (normal.x() + 1.f) / 2.f),  
-//                 (std::uint8_t)(255.f * (normal.y() + 1.f) / 2.f), 
-//                 (std::uint8_t)(255.f * (normal.z() + 1.f) / 2.f)
-//             };
-//         }
-
-//         if (distTravelled > MAX_DISTANCE) break; 
-//     }
-//     return originalColor;  
-// }
-
-// Hit Raymarcher::getClosestHit(const Scene& scene, const Eigen::Vector4f& pos) {
-
-//     float minDistance = __FLT_MAX__;
-//     Eigen::Vector4f objectSpacePos;
-//     Hit closestHit{nullptr, minDistance};
-
-//     for ( const RenderShapeData& shapeData : scene.metaData.shapes) {
-
-//         //Transform our position to object space using the shape's inverse CTM
-//         objectSpacePos = shapeData.inverseCtm * pos;
-
-//         float shapeDistance = getShapeDistance(shapeData,objectSpacePos);
-
-//         if (shapeDistance < minDistance) {
-//             minDistance = shapeDistance;
-//             closestHit = Hit{&shapeData, minDistance};
-//         }
-
-//     }
-//     //Store the normal of the point
-//     objectSpacePos = closestHit.shapeData->inverseCtm * pos;
-//     closestHit.normal = calculateNormal(*(closestHit.shapeData),objectSpacePos.head(3));
-//     return closestHit;
-
-// }
-
-// float Raymarcher::getShapeDistance(const RenderShapeData& shapeData, const Eigen::Vector4f& pos) {
-//     return shapeData.primitive.distance(pos.head(3));
-// }
-
-

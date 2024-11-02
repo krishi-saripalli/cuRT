@@ -1,11 +1,10 @@
 {
-    "IO": {
-      "scene": "/users/ksaripal/projects/raymarcher/scenefiles/intersect/parse_matrix.json",
-      "output": "/users/ksaripal/projects/raymarcher/output/test.png"
-    },
-    "Canvas": {
-      "width": 1024,
-      "height": 768
-    }
-
+  "IO": {
+    "scene": "/users/ksaripal/projects/raymarcher/scenefiles/intersect/parse_matrix.json",
+    "output": "/users/ksaripal/projects/raymarcher/output/test.png"
+  },
+  "Canvas": {
+    "width": 1024,
+    "height": 768
   }
+}

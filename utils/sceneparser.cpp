@@ -41,6 +41,7 @@ void dfs(RenderData &renderData, SceneNode* node, Eigen::Matrix4f ctm) {
     for (ScenePrimitive* primitive : node->primitives) {
 
         RenderShapeData shape_data{ *primitive, new_ctm, new_ctm.inverse()};
+        std::cout << "AT PUSH BACK: " << (int) primitive->type << std::endl;
         renderData.shapes.push_back(shape_data);
     }
 
@@ -95,6 +96,8 @@ bool SceneParser::parse(std::string filepath, RenderData &renderData) {
     Eigen::Matrix4f ctm;
     ctm.setIdentity();
     dfs(renderData, root, ctm);
+
+    std::cout << "AFTER DFS " << (int) renderData.shapes[0].primitive.type << std::endl;
 
     std::cout << "Scene Successfully Parsed!" << std::endl;
     return true;

@@ -2,12 +2,14 @@
 #define RENDER_CUH
 
 #include <cuda_runtime.h>
+#include <float.h>
 #include "cudautils.cuh"
 #include "vec3.cuh"
 #include "vec4.cuh"
 #include "mat4.cuh"
 #include "shape.cuh"
 #include "renderdata.cuh"
+#include "hit.cuh"
 #include "../utils/rgba.cuh"
 
 
@@ -20,6 +22,13 @@
     const float* viewPlaneWidth,
     const float* viewPlaneHeight
 );
+
+
+__device__ Hit getClosestHit(const GPURenderShapeData* shapes, const int numShapes, const vec4& worldPos); 
+
+__device__ RGBA marchRay(const GPURenderData& renderData, const RGBA& originalColor, const vec4& p, const vec4& d);
+
+__device__ vec3 getNormal(const GPURenderShapeData* shape, const vec3& p); 
 
 
 #endif

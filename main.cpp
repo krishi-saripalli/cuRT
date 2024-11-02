@@ -86,8 +86,12 @@ int main(int argc, char *argv[])
     }
 
 
+    
     std::unique_ptr<Window> window(new Window(width, height, "THE CLAW"));
     const Scene scene{width, height, metaData};
+
+
+
 
     TextureQuad quad = setupTextureDisplayQuad(scene.getCamera().getAspectRatio(width,height));
     auto [texture, pbo] = createTexture(width,height,4);

@@ -751,23 +751,24 @@ bool ScenefileReader::parsePrimitive(const json& prim, SceneNode *node) {
 
     std::filesystem::path basepath = std::filesystem::path(file_name).parent_path().parent_path();
     if (primType == "sphere") {
-        primitive = new ScenePrimitive(distToSphere);
+        primitive = new ScenePrimitive();
         primitive->type = PrimitiveType::PRIMITIVE_SPHERE;
+        std::cout << "SPHERE PRIM TYPE REACHED  " << (int)primitive->type << std::endl;
     } 
     else if (primType == "cube") {
-        primitive = new ScenePrimitive(distToCube);
+        primitive = new ScenePrimitive();
         primitive->type = PrimitiveType::PRIMITIVE_CUBE;
     }   
     else if (primType == "cylinder") {
-        primitive = new ScenePrimitive(distToCylinder);
+        primitive = new ScenePrimitive();
         primitive->type = PrimitiveType::PRIMITIVE_CYLINDER;
     }
     else if (primType == "cone") {
-        primitive = new ScenePrimitive(distToCone);
+        primitive = new ScenePrimitive();
         primitive->type = PrimitiveType::PRIMITIVE_CONE;
     } 
     else if (primType == "mesh") {
-        primitive = new ScenePrimitive(nullptr);
+        primitive = new ScenePrimitive();
         primitive->type = PrimitiveType::PRIMITIVE_MESH;
         std::cout << "SDF for Mesh Primitive Needs to Be Implemented" << std::endl;
         return false;
@@ -790,7 +791,6 @@ bool ScenefileReader::parsePrimitive(const json& prim, SceneNode *node) {
 
     SceneMaterial &mat = primitive->material;
     mat.clear();
-    primitive->type = PrimitiveType::PRIMITIVE_CUBE;
     mat.textureMap.isUsed = false;
     mat.bumpMap.isUsed = false;
     mat.cDiffuse[0] = mat.cDiffuse[2] = mat.cDiffuse[3] = 1;

@@ -3,17 +3,23 @@
 
 #include <cuda_runtime.h>
 #include "vec3.cuh" 
+#include "vec4.cuh" 
 #include "mat4.cuh"  
 
 
 struct Hit {
-    GPURenderShapeData* shape;
-    vec3 normal;
-    vec3 intersection;
+    const GPURenderShapeData* shape;
+    vec4 normal;
+    vec4 intersection;
     float distance;
 
-    __host__ __device__ Hit(GPURenderData* _shape, vec3 _normal, vec3 _location, float _distance)
-        : shape(_shape), normal(_normal), location(_location), shapeId(_shapeId), distance(_distance) {}
+    __host__ __device__ Hit() 
+        : shape(nullptr), normal(vec4(0.f,0.f,0.f,0.f)), intersection(vec4(0.f,0.f,0.f,0.f)), distance(FLT_MAX) {}
+
+
+    __host__ __device__ Hit(GPURenderShapeData* _shape, vec4 _normal, vec4 _intersection, float _distance)
+        : shape(_shape), normal(_normal), intersection(_intersection), distance(_distance) {}
 };
+
 
 #endif

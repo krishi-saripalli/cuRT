@@ -37,7 +37,7 @@ public:
     __host__ __device__ inline void normalize();
 
 
-    float e[3];
+    float e[4];
 };
 
 
