@@ -1,5 +1,5 @@
-#ifndef VEC3H_CUH
-#define VEC3H_CUH
+#ifndef VEC3_CUH
+#define VEC3_CUH
 
 
 #include <math.h>
@@ -40,7 +40,13 @@ public:
     float e[3];
 };
 
-
+__host__ __device__ inline void print(const vec3& v, const char* name = "") {
+    printf("%s[%.3f, %.3f, %.3f]\n", 
+           name,
+           v.x(), 
+           v.y(), 
+           v.z());
+}
 
 inline std::istream& operator>>(std::istream &is, vec3 &t) {
     is >> t.e[0] >> t.e[1] >> t.e[2];

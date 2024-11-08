@@ -1,5 +1,5 @@
-#ifndef VEC4H_CUH
-#define VEC4H_CUH
+#ifndef VEC4_CUH
+#define VEC4_CUH
 
 #include <math.h>
 #include <stdlib.h>
@@ -40,6 +40,14 @@ public:
     float e[4];
 };
 
+__host__ __device__ inline void print(const vec4& v, const char* name = "") {
+    printf("%s[%.3f, %.3f, %.3f, %.3f]\n", 
+           name,
+           v.x(), 
+           v.y(), 
+           v.z(), 
+           v[3]);
+}
 
 
 inline std::istream& operator>>(std::istream &is, vec4 &t) {

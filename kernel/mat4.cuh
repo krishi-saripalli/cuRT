@@ -17,7 +17,7 @@ public:
         m[3] = vec4(m30, m31, m32, m33);
     }
      
-     //constructor accepts column-major data and just transposes it
+     //constructor accepts column-major data and converts it to row-major
     __host__ __device__ mat4(const float* columnMajorData) {
         m[0] = vec4(columnMajorData[0], columnMajorData[4], columnMajorData[8],  columnMajorData[12]);
         m[1] = vec4(columnMajorData[1], columnMajorData[5], columnMajorData[9],  columnMajorData[13]);
@@ -30,6 +30,14 @@ public:
 
     vec4 m[4];
 };
+
+__host__ __device__ inline void print(const mat4& m, const char* name = "") {
+    printf("%s\n", name);
+    printf("[%.3f, %.3f, %.3f, %.3f]\n", m[0][0], m[0][1], m[0][2], m[0][3]);
+    printf("[%.3f, %.3f, %.3f, %.3f]\n", m[1][0], m[1][1], m[1][2], m[1][3]);
+    printf("[%.3f, %.3f, %.3f, %.3f]\n", m[2][0], m[2][1], m[2][2], m[2][3]);
+    printf("[%.3f, %.3f, %.3f, %.3f]\n", m[3][0], m[3][1], m[3][2], m[3][3]);
+}
 
 __host__ __device__ inline vec4 operator*(const mat4& m, const vec4& v) {
     return vec4(dot(m[0], v),

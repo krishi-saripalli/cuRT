@@ -21,13 +21,19 @@
         const mat4 ivm = *inverseViewMatrix;
 
         
-        float x = ((col+0.5f)/w) - 0.5f, y = ((h - 1.f - row + 0.5f)/h) - 0.5f;
+        float x = ((col+0.5f)/w) - 0.5f, y = ((row + 0.5f)/h) - 0.5f; // flip y coord so that origin is at bottom-left corner
         vec4 p(0.f,0.f,0.f,1.f);
         vec4 d(vw * x, vh * y, -0.1f , 0.f);
         p = ivm * p;
         d = ivm * d;
         int index = row * (w) + col;
         // RGBA originalColor = imageData[index];
+        if (blockIdx.x == 0 && threadIdx.x == 0) {
+            print(renderData->shapes[0].ctm, "CTM: ");
+            assert(0);
+        }
+        
+
 
         imageData[index] = marchRay(*renderData, imageData[index], p, d);
     }
@@ -55,11 +61,14 @@ __device__ Hit getClosestHit(const GPURenderShapeData* shapes, const int numShap
         }
 
     }
+    // print(closestHit.shape->ctm, "CTM: ");
+    // print(closestHit.shape->invTransposeCtm, "IVT3: ");
     closestHit.intersection =  closestHit.shape->ctm * objectPos;
     
 
-    vec3 normal3 = closestHit.shape->invTransposeCtm * getNormal(closestHit.shape, vec3(objectPos.x(),objectPos.y(),objectPos.z()));
-    closestHit.normal = vec4(normal3.x(),normal3.y(),normal3.z(),1.0f);
+     //closestHit.shape->invTransposeCtm * 
+    vec3 normal3 = getNormal(closestHit.shape, vec3(objectPos.x(),objectPos.y(),objectPos.z()));
+    closestHit.normal = vec4(normal3.x(),normal3.y(),normal3.z(),0.0f);
 
     return closestHit;
 }
@@ -69,8 +78,8 @@ __device__ RGBA marchRay(const GPURenderData& renderData, const RGBA& originalCo
     
     float distTravelled = 0.f;
     const int NUMBER_OF_STEPS = 1000;
-    const float EPSILON = 1e-4;
-    const float MAX_DISTANCE = 1000.0f;
+    const float EPSILON = 1e-5;
+    const float MAX_DISTANCE = 100.0f;
 
     for (int i = 0; i < NUMBER_OF_STEPS; ++i) {
 

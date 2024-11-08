@@ -30,6 +30,14 @@ public:
     vec3 m[3];
 };
 
+__host__ __device__ inline void print(const mat3& m, const char* name = "") {
+    printf("%s\n", name);
+    printf("[%.3f, %.3f, %.3f]\n", m[0][0], m[0][1], m[0][2]);
+    printf("[%.3f, %.3f, %.3f]\n", m[1][0], m[1][1], m[1][2]);
+    printf("[%.3f, %.3f, %.3f]\n", m[2][0], m[2][1], m[2][2]);
+}
+
+
 __host__ __device__ inline vec3 operator*(const mat3& m, const vec3& v) {
     return vec3(dot(m[0], v),
                 dot(m[1], v),

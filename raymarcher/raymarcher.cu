@@ -139,13 +139,28 @@ void Raymarcher::allocateDeviceRenderData() {
 
         // set shape data
         Eigen::Matrix4f ctm = cpuShape.ctm;
-        Eigen::Matrix3f inverseTransposeCtm = ctm.block<3,3>(0,0).inverse().transpose();
+        // std::cout << "Eigen CTM:\n" << ctm << std::endl;
+        Eigen::Matrix3f upperBlock = ctm.block<3,3>(0,0);
+        // std::cout << "Upper 3x3 block:\n" << upperBlock << std::endl;
+        Eigen::Matrix3f inverseTransposeCtm = upperBlock.inverse().transpose();
+        // std::cout << "IVT3:\n" << inverseTransposeCtm << std::endl;
+
+        mat4 deviceCtm = mat4(ctm.data());
+        mat4 deviceInverseCtm = mat4(cpuShape.inverseCtm.data());
+        mat3 deviceIVT3 = mat3(inverseTransposeCtm.data());
+
+        // print(deviceCtm, "DEVICE CTM BEFORE SHAPE DATA constructor: ");
+        
         hostShapes[i] = GPURenderShapeData(
             gpuPrimitive,
-            mat4(ctm.data()),
-            mat4(cpuShape.inverseCtm.data()),
-            mat3(inverseTransposeCtm.data())
+            deviceCtm,
+            deviceInverseCtm,
+            deviceIVT3
         );
+
+        // print(hostShapes[0].ctm, "CTM AFTER constructor: ");
+
+        // std::exit(0);
     }
 
     //allocate device shapes and lights
