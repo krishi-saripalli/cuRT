@@ -26,7 +26,7 @@ Eigen::Matrix4f calculateCTM(std::vector<SceneTransformation*>& transformations,
                 break;
         }
         
-        ctm = transformMatrix * ctm;
+        ctm = ctm * transformMatrix;
     }
     
     return ctm;
@@ -97,7 +97,6 @@ bool SceneParser::parse(std::string filepath, RenderData &renderData) {
     ctm.setIdentity();
     dfs(renderData, root, ctm);
 
-    std::cout << "AFTER DFS " << (int) renderData.shapes[0].primitive.type << std::endl;
 
     std::cout << "Scene Successfully Parsed!" << std::endl;
     return true;

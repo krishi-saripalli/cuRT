@@ -28,10 +28,11 @@
         d = ivm * d;
         int index = row * (w) + col;
         // RGBA originalColor = imageData[index];
-        if (blockIdx.x == 0 && threadIdx.x == 0) {
-            print(renderData->shapes[0].ctm, "CTM: ");
-            assert(0);
-        }
+        // int globalThreadIdx = blockIdx * numBlocks + 
+        // if (blockIdx.x == 0 && threadIdx.x == 0) {
+        //     print(renderData->shapes[0].ctm, "CTM: ");
+        //     assert(0);
+        // }
         
 
 
@@ -66,8 +67,9 @@ __device__ Hit getClosestHit(const GPURenderShapeData* shapes, const int numShap
     closestHit.intersection =  closestHit.shape->ctm * objectPos;
     
 
-     //closestHit.shape->invTransposeCtm * 
+
     vec3 normal3 = getNormal(closestHit.shape, vec3(objectPos.x(),objectPos.y(),objectPos.z()));
+    normal3 = closestHit.shape->invTransposeCtm * normal3;
     closestHit.normal = vec4(normal3.x(),normal3.y(),normal3.z(),0.0f);
 
     return closestHit;
@@ -79,7 +81,7 @@ __device__ RGBA marchRay(const GPURenderData& renderData, const RGBA& originalCo
     float distTravelled = 0.f;
     const int NUMBER_OF_STEPS = 1000;
     const float EPSILON = 1e-5;
-    const float MAX_DISTANCE = 100.0f;
+    const float MAX_DISTANCE = 1000.0f;
 
     for (int i = 0; i < NUMBER_OF_STEPS; ++i) {
 

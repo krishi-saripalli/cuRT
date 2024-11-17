@@ -81,11 +81,12 @@ struct GPUScenePrimitive {
 };
 
 
-struct alignas(16) GPURenderShapeData {
+struct GPURenderShapeData {
     GPUScenePrimitive primitive;
-    alignas(16) mat4 ctm;
-    alignas(16) mat4 inverseCtm;
-    alignas(16) mat3 invTransposeCtm;
+    mat4 ctm;
+    mat4 inverseCtm;
+    mat3 invTransposeCtm;
+    
 
     GPURenderShapeData() = default;
     __host__ __device__ GPURenderShapeData(GPUScenePrimitive _primitive, const mat4& _ctm,  const mat4& _inverseCtm,  const mat3& _inverseTransposeCtm)

@@ -158,9 +158,7 @@ void Raymarcher::allocateDeviceRenderData() {
             deviceIVT3
         );
 
-        // print(hostShapes[0].ctm, "CTM AFTER constructor: ");
 
-        // std::exit(0);
     }
 
     //allocate device shapes and lights
