@@ -149,7 +149,6 @@ void Raymarcher::allocateDeviceRenderData() {
         mat4 deviceInverseCtm = mat4(cpuShape.inverseCtm.data());
         mat3 deviceIVT3 = mat3(inverseTransposeCtm.data());
 
-        // print(deviceCtm, "DEVICE CTM BEFORE SHAPE DATA constructor: ");
         
         hostShapes[i] = GPURenderShapeData(
             gpuPrimitive,
@@ -157,8 +156,6 @@ void Raymarcher::allocateDeviceRenderData() {
             deviceInverseCtm,
             deviceIVT3
         );
-
-
     }
 
     //allocate device shapes and lights
@@ -230,7 +227,7 @@ void Raymarcher::run() {
 void Raymarcher::render() {
 
     int width = scene.c_width, height = scene.c_height;
-    dim3 blockSize(16,16);
+    dim3 blockSize(32,32);
     dim3 gridSize(
         (width + blockSize.x - 1) / blockSize.x,
         (height + blockSize.y - 1) / blockSize.y

@@ -1,6 +1,6 @@
 {
   "IO": {
-    "scene": "/users/ksaripal/projects/raymarcher/scenefiles/intersect/parse_matrix.json",
+    "scene": "/users/ksaripal/projects/raymarcher/scenefiles/intersect/phong_total.json",
     "output": "/users/ksaripal/projects/raymarcher/output/test.png"
   },
   "Canvas": {

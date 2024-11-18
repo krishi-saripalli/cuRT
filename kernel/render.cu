@@ -83,6 +83,7 @@ __device__ RGBA marchRay(const GPURenderData& renderData, const RGBA& originalCo
         if (closestHit.distance <= EPSILON) {
             
             vec4 normal = closestHit.normal;
+            // TODO: Phong
 
             return RGBA{
                 (unsigned char)(255.f * (normal.x() + 1.f) / 2.f),  
@@ -117,7 +118,3 @@ __device__ vec3 getNormal(const GPURenderShapeData* shape, const vec3& p) {
 
     return normal;
 }
-
-
-
-// RGBA marchRay(const GPUShape* shapes, const RGBA originalColor, const vec4& p, const vec4& d)
