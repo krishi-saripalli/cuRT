@@ -148,8 +148,5 @@ __host__ __device__ inline vec4& vec4::operator/=(const float t) {
     return *this;
 }
 
-__host__ __device__ inline vec4 unit_vector(vec4 v) {
-    return v / v.length();
-}
 
 #endif

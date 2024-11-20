@@ -84,6 +84,8 @@ add_executable(${PROJECT_NAME}
     kernel/shape.cuh
     kernel/vec3.cuh
     kernel/vec4.cuh
+    kernel/light.cuh
+    kernel/light.cu
 )
 
 

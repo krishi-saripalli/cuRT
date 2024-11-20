@@ -11,8 +11,6 @@
 #include "../kernel/renderdata.cuh"
 #include "../kernel/cudautils.cuh"
 #include "../kernel/distance.cuh"
-
-
 #include <cuda_gl_interop.h>
 
 Raymarcher::Raymarcher(std::unique_ptr<Window> w, const Scene& s, GLuint p) : window(std::move(w)), scene(s)  {
@@ -127,6 +125,7 @@ void Raymarcher::allocateDeviceRenderData() {
         vec4(cpuMaterial.cTransparent.data()),
         cpuMaterial.ior);
 
+        std::cout << cpuMaterial.shininess << std::endl;
         GPUScenePrimitive gpuPrimitive(
             static_cast<GPUPrimitiveType>(cpuShape.primitive.type),
             gpuMaterial

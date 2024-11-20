@@ -1,4 +1,5 @@
 #include "render.cuh"
+#include "light.cuh"
 
 
  __global__ void renderKernel(
@@ -36,11 +37,11 @@
 }
 
 
-__device__ Hit getClosestHit(const GPURenderShapeData* shapes, const int numShapes, const vec4& worldPos) {
+__device__ Hit getClosestHit(const GPURenderShapeData* shapes, const int numShapes, const vec4& worldPos, const vec4& direction) {
     float minDistance = FLT_MAX;
     vec4 objectPos;
     Hit closestHit;
-
+    
     for (int i = 0; i < numShapes; ++i) {
         const GPURenderShapeData& shape = shapes[i];
         objectPos = shape.inverseCtm * worldPos;
@@ -54,13 +55,17 @@ __device__ Hit getClosestHit(const GPURenderShapeData* shapes, const int numShap
         }
 
     }
-
     objectPos = closestHit.shape->inverseCtm * worldPos;
+
+
     closestHit.intersection =  closestHit.shape->ctm * objectPos;
     vec3 normal3 = getNormal(closestHit.shape, vec3(objectPos.x(),objectPos.y(),objectPos.z()));
     normal3 = closestHit.shape->invTransposeCtm * normal3;
-    normal3.normalize();
+    
+
     closestHit.normal = vec4(normal3.x(),normal3.y(),normal3.z(),0.0f);
+    closestHit.normal.normalize();
+    closestHit.direction = direction;
 
     return closestHit;
 }
@@ -76,20 +81,25 @@ __device__ RGBA marchRay(const GPURenderData& renderData, const RGBA& originalCo
     for (int i = 0; i < NUMBER_OF_STEPS; ++i) {
 
         vec4 currPos = p + (distTravelled * d);
-        Hit closestHit = getClosestHit(renderData.shapes,renderData.numShapes,currPos);
+        Hit closestHit = getClosestHit(renderData.shapes,renderData.numShapes,currPos,d);
         distTravelled += closestHit.distance;
 
         
         if (closestHit.distance <= EPSILON) {
             
-            vec4 normal = closestHit.normal;
+            vec4 color = illumination(renderData,closestHit);
             // TODO: Phong
-
             return RGBA{
-                (unsigned char)(255.f * (normal.x() + 1.f) / 2.f),  
-                (unsigned char)(255.f * (normal.y() + 1.f) / 2.f), 
-                (unsigned char)(255.f * (normal.z() + 1.f) / 2.f)
+                (unsigned char)(255.f * color.r()),  
+                (unsigned char)(255.f * color.g()), 
+                (unsigned char)(255.f * color.b())
             };
+
+            // return RGBA{
+            //     (unsigned char)(255.f * (normal.x() + 1.f) / 2.f),  
+            //     (unsigned char)(255.f * (normal.y() + 1.f) / 2.f), 
+            //     (unsigned char)(255.f * (normal.z() + 1.f) / 2.f)
+            // };
             
 
             

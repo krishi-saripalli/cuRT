@@ -87,8 +87,6 @@ inline TextureQuad setupTextureDisplayQuad(float aspectRatio)
     textCoords[2] = {0.0f, 0.0f};
     textCoords[3] = {0.0f, 1.0f};
 
-    
-    
     const unsigned indices[] = {
         0, 1, 3,
         1, 2, 3
