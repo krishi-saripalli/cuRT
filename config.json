@@ -1,6 +1,6 @@
 {
   "IO": {
-    "scene": "/users/ksaripal/projects/raymarcher/scenefiles/intersect/unit_sphere.json",
+    "scene": "/users/ksaripal/projects/raymarcher/scenefiles/intersect/directional_light_2.json",
     "output": "/users/ksaripal/projects/raymarcher/output/test.png"
   },
   "Canvas": {

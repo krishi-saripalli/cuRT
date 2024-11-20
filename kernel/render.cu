@@ -1,3 +1,5 @@
+
+#include <cuda_runtime.h>
 #include "render.cuh"
 #include "light.cuh"
 
@@ -90,9 +92,9 @@ __device__ RGBA marchRay(const GPURenderData& renderData, const RGBA& originalCo
             vec4 color = illumination(renderData,closestHit);
             // TODO: Phong
             return RGBA{
-                (unsigned char)(255.f * color.r()),  
-                (unsigned char)(255.f * color.g()), 
-                (unsigned char)(255.f * color.b())
+                (unsigned char)(255.f * fminf(fmaxf(color.r(), 0.f), 1.f)),  
+                (unsigned char)(255.f * fminf(fmaxf(color.g(), 0.f), 1.f)), 
+                (unsigned char)(255.f * fminf(fmaxf(color.b(), 0.f), 1.f))
             };
 
             // return RGBA{
