@@ -2,6 +2,72 @@
 #include <cuda_runtime.h>
 #include "render.cuh"
 #include "light.cuh"
+#include "intersect.cuh"
+
+__device__ Hit getIntersection(const GPURenderShapeData* shapes, const int numShapes, const vec4& origin, const vec4& direction) {
+    float minT = FLT_MAX;
+    Hit closestHit;
+    closestHit.shape = nullptr;
+    
+    for (int i = 0; i < numShapes; ++i) {
+        const GPURenderShapeData& shape = shapes[i];
+        
+        // Transform ray to object space
+        vec4 objectPos = shape.inverseCtm * origin;
+        vec4 objectDir = shape.inverseCtm * direction;
+        vec3 p(objectPos.x(), objectPos.y(), objectPos.z());
+        vec3 d(objectDir.x(), objectDir.y(), objectDir.z());
+        
+        // Get intersection based on shape type
+        Intersection intersection;
+        switch(shape.primitive.type) {
+            case GPUPrimitiveType::PRIMITIVE_SPHERE:
+                intersection = intersectSphere(p, d);
+                break;
+            case GPUPrimitiveType::PRIMITIVE_CYLINDER:
+                intersection = intersectCylinder(p, d);
+                break;
+            case GPUPrimitiveType::PRIMITIVE_CONE:
+                intersection = intersectCone(p, d);
+                break;
+            case GPUPrimitiveType::PRIMITIVE_CUBE:
+                intersection = intersectCube(p, d);
+                break;
+            default:
+                continue;
+        }
+        
+        if (intersection.t < minT && intersection.t > 0) {
+            minT = intersection.t;
+            closestHit.shape = &shapes[i];
+            
+            closestHit.intersection = origin + direction * intersection.t;
+            
+            vec3 worldNormal = shape.invTransposeCtm * intersection.normal;
+            closestHit.normal = vec4(worldNormal.x(), worldNormal.y(), worldNormal.z(), 0.0f);
+            closestHit.normal.normalize();
+            
+            closestHit.direction = direction;
+        }
+    }
+    
+    return closestHit;
+}
+
+__device__ RGBA traceRay(const GPURenderData& renderData, const RGBA& originalColor, const vec4& origin, const vec4& direction) {
+    Hit hit = getIntersection(renderData.shapes, renderData.numShapes, origin, direction);
+    
+    if (hit.shape != nullptr) {
+        vec4 color = illumination(renderData, hit);
+        return RGBA{
+            (unsigned char)(255.f * fminf(fmaxf(color.r(), 0.f), 1.f)),
+            (unsigned char)(255.f * fminf(fmaxf(color.g(), 0.f), 1.f)),
+            (unsigned char)(255.f * fminf(fmaxf(color.b(), 0.f), 1.f))
+        };
+    }
+    
+    return originalColor;
+}
 
 
  __global__ void renderKernel(
@@ -33,7 +99,7 @@
 
         
 
-        imageData[index] = marchRay(*renderData, imageData[index], p, d);
+        imageData[index] = traceRay(*renderData, imageData[index], p, d);
     }
 
 }
@@ -49,7 +115,7 @@ __device__ Hit getClosestHit(const GPURenderShapeData* shapes, const int numShap
         objectPos = shape.inverseCtm * worldPos;
  
         float distance = shape.primitive.distance(vec3(objectPos.x(),objectPos.y(),objectPos.z()));
-
+    
         if (distance < minDistance) {
             minDistance = distance;
             closestHit.distance = minDistance;
@@ -76,10 +142,12 @@ __device__ Hit getClosestHit(const GPURenderShapeData* shapes, const int numShap
 __device__ RGBA marchRay(const GPURenderData& renderData, const RGBA& originalColor, const vec4& p, const vec4& d) {
     
     float distTravelled = 0.f;
-    const int NUMBER_OF_STEPS = 1000;
-    const float EPSILON = 1e-5;
-    const float MAX_DISTANCE = 1000.0f;
-
+    const int NUMBER_OF_STEPS = 3000;
+    const float EPSILON = 1e-3;
+    const float MAX_DISTANCE = 100.0f;
+    // 511 383
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
     for (int i = 0; i < NUMBER_OF_STEPS; ++i) {
 
         vec4 currPos = p + (distTravelled * d);
@@ -88,9 +156,13 @@ __device__ RGBA marchRay(const GPURenderData& renderData, const RGBA& originalCo
 
         
         if (closestHit.distance <= EPSILON) {
+
+            if (col == 511 && row == 383) {
+                printf("Number of Steps: %d \n", i);
+                printf("Distance Travelled: %f \n", distTravelled);
+            }
             
             vec4 color = illumination(renderData,closestHit);
-            // TODO: Phong
             return RGBA{
                 (unsigned char)(255.f * fminf(fmaxf(color.r(), 0.f), 1.f)),  
                 (unsigned char)(255.f * fminf(fmaxf(color.g(), 0.f), 1.f)), 
@@ -98,9 +170,9 @@ __device__ RGBA marchRay(const GPURenderData& renderData, const RGBA& originalCo
             };
 
             // return RGBA{
-            //     (unsigned char)(255.f * (normal.x() + 1.f) / 2.f),  
-            //     (unsigned char)(255.f * (normal.y() + 1.f) / 2.f), 
-            //     (unsigned char)(255.f * (normal.z() + 1.f) / 2.f)
+            //     (unsigned char)(255.f * (closestHit.normal.x() + 1.f) / 2.f),  
+            //     (unsigned char)(255.f * (closestHit.normal.y() + 1.f) / 2.f), 
+            //     (unsigned char)(255.f * (closestHit.normal.z() + 1.f) / 2.f)
             // };
             
 
@@ -112,8 +184,11 @@ __device__ RGBA marchRay(const GPURenderData& renderData, const RGBA& originalCo
     return originalColor;  
 }
 
+
+
 // Tetrahedron method from https://iquilezles.org/articles/normalsSDF/
 __device__ vec3 getNormal(const GPURenderShapeData* shape, const vec3& p) {
+
     const float h = 0.0001f;
     const vec3 k(1.0f, -1.0f, 0.0f);
     vec3 xyy(k.x(), k.y(), k.y());

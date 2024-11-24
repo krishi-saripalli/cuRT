@@ -9,6 +9,11 @@ struct vec2 {
     __device__ vec2(float x_, float y_) : x(x_), y(y_) {}
 };
 
+inline __device__ float distToSphere(const vec3& p) {
+    const float radius = 0.5f;
+    return p.length() - radius;
+}
+
 inline __device__ float distToCube(const vec3& p) {
     const vec3 b(0.5f, 0.5f, 0.5f);
     // create q vector (absolute value of p minus b)
@@ -25,11 +30,6 @@ inline __device__ float distToCube(const vec3& p) {
               fmaxf(q[2], 0.0f));
     
     return qMax.length() + fminf(maxComp, 0.0f);
-}
-
-inline __device__ float distToSphere(const vec3& p) {
-    const float radius = 0.5f;
-    return p.length() - radius;
 }
 
 inline __device__ float distToCylinder(const vec3& p) {

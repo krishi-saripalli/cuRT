@@ -125,24 +125,14 @@ void Raymarcher::allocateDeviceRenderData() {
         vec4(cpuMaterial.cTransparent.data()),
         cpuMaterial.ior);
 
-        std::cout << cpuMaterial.shininess << std::endl;
         GPUScenePrimitive gpuPrimitive(
             static_cast<GPUPrimitiveType>(cpuShape.primitive.type),
             gpuMaterial
         );
 
-        printf("CPU primitive type: %d\n", cpuShape.primitive.type);
-        printf("GPU primitive type: %d\n", gpuPrimitive.type);
-
-        
-
-        // set shape data
         Eigen::Matrix4f ctm = cpuShape.ctm;
-        // std::cout << "Eigen CTM:\n" << ctm << std::endl;
         Eigen::Matrix3f upperBlock = ctm.block<3,3>(0,0);
-        // std::cout << "Upper 3x3 block:\n" << upperBlock << std::endl;
         Eigen::Matrix3f inverseTransposeCtm = upperBlock.inverse().transpose();
-        // std::cout << "IVT3:\n" << inverseTransposeCtm << std::endl;
 
         mat4 deviceCtm = mat4(ctm.data());
         mat4 deviceInverseCtm = mat4(cpuShape.inverseCtm.data());
@@ -232,6 +222,11 @@ void Raymarcher::render() {
         (height + blockSize.y - 1) / blockSize.y
     ); // number of blocks
 
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+    cudaEventRecord(start);
     renderKernel<<<gridSize,blockSize>>>(
         deviceImageData,
         deviceRenderData,
@@ -241,11 +236,19 @@ void Raymarcher::render() {
         deviceViewPlaneWidth,
         deviceViewPlaneHeight
     );
+    cudaEventRecord(stop);
+
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
         std::cerr << "CUDA Kernel launch failed: " << cudaGetErrorString(err) << std::endl;
     }
     gpuErrorCheck( cudaDeviceSynchronize());
+
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+
+    std::cout << "Frame took " << milliseconds << std::endl;
 
     
     // update texture from PBO
