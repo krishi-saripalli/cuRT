@@ -39,7 +39,7 @@ Eigen::Matrix4f Camera::getViewMatrix() const {
 }
 
 float Camera::getAspectRatio(int width, int height) const {
-    return float(float(width)/float(height));
+    return float(width)/float(height);
 
 }
 

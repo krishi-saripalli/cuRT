@@ -22,7 +22,7 @@ Raymarcher::Raymarcher(std::unique_ptr<Window> w, const Scene& s, GLuint p) : wi
 
 
     int width = scene.c_width, height = scene.c_height;
-    float distToViewPlane = 0.1f, aspectRatio = scene.getCamera().getAspectRatio(width,height);
+    float distToViewPlane = 1.f, aspectRatio = scene.getCamera().getAspectRatio(width,height);
     float heightAngle = scene.getCamera().getHeightAngle();
 
     
@@ -176,6 +176,8 @@ void Raymarcher::run() {
         return;
     }
 
+    glViewport(0, 0, scene.c_width, scene.c_height);
+
     while(!(*window).shouldClose()) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
@@ -194,7 +196,7 @@ void Raymarcher::run() {
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
-        GLint texLoc = glGetUniformLocation(shaderProgram, "ourTexture");
+        GLint texLoc = glGetUniformLocation(shaderProgram, "imageTexture");
         if (texLoc == -1) {
             std::cout << "Warning: Could not find texture uniform" << std::endl;
         }
@@ -237,6 +239,9 @@ void Raymarcher::render() {
         deviceViewPlaneHeight
     );
     cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
 
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -244,9 +249,7 @@ void Raymarcher::render() {
     }
     gpuErrorCheck( cudaDeviceSynchronize());
 
-    cudaEventSynchronize(stop);
-    float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
+    
 
     std::cout << "Frame took " << milliseconds << std::endl;
 

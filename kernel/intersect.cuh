@@ -194,10 +194,8 @@ inline __device__ Intersection intersectCubeFace(const vec3& p, const vec3& d,
     Intersection result;
     result.t = FLT_MAX;
     
-    // Calculate intersection point
     vec3 intersection = p + d * t;
     
-    // Check if point is within face bounds
     bool inside = true;
     for(int i = 0; i < 3; i++) {
         if(i != skipAxis) {
@@ -209,7 +207,6 @@ inline __device__ Intersection intersectCubeFace(const vec3& p, const vec3& d,
         result.t = t;
         result.normal = normal;
     }
-    
     return result;
 }
 
@@ -217,7 +214,6 @@ inline __device__ Intersection intersectCube(const vec3& p, const vec3& d) {
     Intersection result;
     result.t = FLT_MAX;
     
-    // Test all six faces
     Intersection faces[6] = {
         // Right face (+X)
         intersectCubeFace(p, d, 0.5f, vec3(1.0f, 0.0f, 0.0f), 0),
@@ -233,7 +229,6 @@ inline __device__ Intersection intersectCube(const vec3& p, const vec3& d) {
         intersectCubeFace(p, d, -0.5f, vec3(0.0f, 0.0f, -1.0f), 2)
     };
     
-    // Find closest valid intersection
     for(int i = 0; i < 6; i++) {
         if(faces[i].t < result.t && faces[i].t > 0) {
             result = faces[i];

@@ -30,9 +30,9 @@ inline GLuint createShader()
         #version 330 core
         in vec2 TexCoord;
         out vec4 FragColor;
-        uniform sampler2D ourTexture;
+        uniform sampler2D imageTexture;
         void main() {
-            vec4 texColor = texture(ourTexture, TexCoord);
+            vec4 texColor = texture(imageTexture, TexCoord);
             FragColor = texColor;
     }
 )";
@@ -70,9 +70,9 @@ inline TextureQuad setupTextureDisplayQuad(float aspectRatio)
 
     struct float2 { float x; float y; };
 
-    const float minX = -aspectRatio;
+    const float minX = -1.0f;
     const float minY = -1.0f;
-    const float maxX = aspectRatio;
+    const float maxX = 1.0f;
     const float maxY = 1.0f;
 
     float2 vertices[4];
