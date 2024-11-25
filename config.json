@@ -1,6 +1,6 @@
 {
   "IO": {
-    "scene": "/users/ksaripal/projects/raymarcher/scenefiles/intersect/point_light_1.json",
+    "scene": "/users/ksaripal/projects/raymarcher/scenefiles/intersect/spot_light_1.json",
     "output": "/users/ksaripal/projects/raymarcher/output/test.png"
   },
   "Canvas": {

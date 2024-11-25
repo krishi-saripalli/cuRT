@@ -9,6 +9,7 @@ __device__ vec4 illumination(const GPURenderData& renderData, const Hit& hit);
 
 __device__ vec4 directionalIllumination(const GPURenderData& renderData, const Hit& hit, const GPUSceneLightData& light);
 __device__ vec4 pointIllumination(const GPURenderData& renderData, const Hit& hit, const GPUSceneLightData& light);
+__device__ vec4 spotIllumination(const GPURenderData& renderData, const Hit& hit, const GPUSceneLightData& light);
 
 
 #endif
