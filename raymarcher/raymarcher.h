@@ -61,6 +61,7 @@ class Raymarcher {
         float* deviceViewPlaneWidth;
         float* deviceViewPlaneHeight;
 
+        vec4 *devicePos, *deviceLook, *deviceUp;
 
         void allocateDeviceRenderData();
        

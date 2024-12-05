@@ -70,37 +70,83 @@ __device__ RGBA traceRay(const GPURenderData& renderData, const RGBA& originalCo
 
 
  __global__ void renderKernel(
-    RGBA* imageData,
-    const GPURenderData* renderData,
-    const mat4* inverseViewMatrix,
-    const int* width,
-    const int* height,
-    const float* viewPlaneWidth,
-    const float* viewPlaneHeight
+   RGBA* imageData,
+   const GPURenderData* renderData,
+   const vec4* cameraPos,     
+   const vec4* cameraLook,    
+   const vec4* cameraUp,      
+   const mat4* inverseViewMatrix, 
+   const int* width,
+   const int* height,
+   const float* viewPlaneWidth,
+   const float* viewPlaneHeight
 ) {
+   int col = blockIdx.x * blockDim.x + threadIdx.x;
+   int row = blockIdx.y * blockDim.y + threadIdx.y;
+   
+   if (col < *width && row < *height) {
+       const int w = *width, h = *height;
+       const float vw = *viewPlaneWidth, vh = *viewPlaneHeight;
+       
+       // NDC coordinates for pixel center
+       float x = ((col + 0.5f)/float(w)) - 0.5f;
+       float y = ((row + 0.5f)/float(h)) - 0.5f;
 
-    
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
-    int row = blockIdx.y * blockDim.y + threadIdx.y;
-    
-    if (col < *width && row < *height) {
-        const int w = *width, h = *height;
-        const float vw = *viewPlaneWidth, vh = *viewPlaneHeight;
-        const mat4 ivm = *inverseViewMatrix;
+       vec3 pos3(cameraPos->x(), cameraPos->y(), cameraPos->z());
+       vec3 look3(cameraLook->x(), cameraLook->y(), cameraLook->z());
+       vec3 up3(cameraUp->x(), cameraUp->y(), cameraUp->z());
 
-        
-        float x = ((col+0.5f)/float(w)) - 0.5f, y = ((row + 0.5f)/float(h)) - 0.5f;
-        vec4 p(0.f,0.f,0.f,1.f);
-        vec4 d(vw * x, vh * y, -1.f , 0.f); // TODO: pass in distToViewPlane so that it isn't hardcoded.
-        
-        p = ivm * p;
-        d = ivm * d;
-        d.normalize();
+       vec3 w3 = -look3;
+       w3.normalize();
+       vec3 u3 = cross(up3, w3);
+       u3.normalize();
+       vec3 v3 = cross(w3, u3);
+       v3.normalize();
 
-        int index = row * (w) + col;
-        imageData[index] = traceRay(*renderData, imageData[index], p, d);
-    }
+       // calculate ray direction and convert to vec4
+       vec3 dir3 = u3 * (vw * x) + v3 * (vh * y) - w3;
+       dir3.normalize();
+       vec4 direction(dir3.x(), dir3.y(), dir3.z(), 0.0f);
 
+       int index = row * w + col;
+       imageData[index] = traceRay(*renderData, imageData[index], *cameraPos, direction);
+   }
 }
 
+__global__ void updateCameraKernel(
+    vec4* devicePos,  
+    vec4* deviceLook,
+    vec4* deviceUp,  
+    mat4* deviceInverseViewMat,
+    float zoomAmount
+) {
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+        *devicePos += *deviceLook * zoomAmount;
+        
+        vec3 pos(devicePos->x(), devicePos->y(), devicePos->z());
+        vec3 look(deviceLook->x(), deviceLook->y(), deviceLook->z());
+        vec3 up(deviceUp->x(), deviceUp->y(), deviceUp->z());
+
+        vec3 w = unit_vector(-look);
+        vec3 v = unit_vector(up - (dot(up, w) * w));
+        vec3 u = cross(v, w);
+
+        mat4 rotation(
+            u.x(), u.y(), u.z(), 0.0f,
+            v.x(), v.y(), v.z(), 0.0f,
+            w.x(), w.y(), w.z(), 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        );
+
+        mat4 translation(
+            1.0f, 0.0f, 0.0f, -pos.x(),
+            0.0f, 1.0f, 0.0f, -pos.y(),
+            0.0f, 0.0f, 1.0f, -pos.z(),
+            0.0f, 0.0f, 0.0f, 1.0f
+        );
+
+        mat4 viewMatrix = rotation * translation;
+        *deviceInverseViewMat = inverse(viewMatrix);
+    }
+}
 

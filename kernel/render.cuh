@@ -14,13 +14,24 @@
 
 
  __global__ void renderKernel(
-    RGBA* imageData,
-    const GPURenderData* renderData,
-    const mat4* inverseViewMatrix,
-    const int* width,
-    const int* height,
-    const float* viewPlaneWidth,
-    const float* viewPlaneHeight
+   RGBA* imageData,
+   const GPURenderData* renderData,
+   const vec4* cameraPos,     
+   const vec4* cameraLook,    
+   const vec4* cameraUp,      
+   const mat4* inverseViewMatrix, 
+   const int* width,
+   const int* height,
+   const float* viewPlaneWidth,
+   const float* viewPlaneHeight
+);
+
+__global__ void updateCameraKernel(
+    vec4* devicePos,  
+    vec4* deviceLook, 
+    vec4* deviceUp,   
+    mat4* deviceInverseViewMat,
+    const float zoomAmount
 );
 
 

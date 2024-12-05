@@ -1,5 +1,5 @@
 #define EIGEN_NO_CUDA
-
+#include <omp.h>
 #include <iostream>
 
 #include <cuda_runtime.h>
@@ -40,7 +40,7 @@ Raymarcher::Raymarcher(std::unique_ptr<Window> w, const Scene& s, GLuint p) : wi
     //allocate GPU shapes on the device
     allocateDeviceRenderData();
 
-    // allocate inverse view matrix on the device
+    // // allocate inverse view matrix on the device
     mat4 hostInverseViewMat = mat4(inverseViewMatrix.data());
     gpuErrorCheck( cudaMalloc(&deviceInverseViewMat, sizeof(mat4)) );
     gpuErrorCheck( cudaMemcpy(deviceInverseViewMat, &hostInverseViewMat, sizeof(mat4), cudaMemcpyHostToDevice) );
@@ -56,6 +56,20 @@ Raymarcher::Raymarcher(std::unique_ptr<Window> w, const Scene& s, GLuint p) : wi
     gpuErrorCheck( cudaMemcpy(deviceViewPlaneWidth, &viewPlaneWidth, sizeof(float), cudaMemcpyHostToDevice) );
     gpuErrorCheck( cudaMemcpy(deviceViewPlaneHeight, &viewPlaneHeight, sizeof(float), cudaMemcpyHostToDevice) );
 
+    //allocate camera data
+    gpuErrorCheck( cudaMalloc(&devicePos, sizeof(vec4)) );
+    gpuErrorCheck( cudaMalloc(&deviceLook, sizeof(vec4)) );
+    gpuErrorCheck( cudaMalloc(&deviceUp, sizeof(vec4)) );
+
+    // Initial copy of camera vectors
+    vec4 hostPos = vec4(scene.cameraData.pos.data());
+    vec4 hostLook = vec4(scene.cameraData.look.data());
+    vec4 hostUp = vec4(scene.cameraData.up.data());
+
+    gpuErrorCheck( cudaMemcpy(devicePos, &hostPos, sizeof(vec4), cudaMemcpyHostToDevice) );
+    gpuErrorCheck( cudaMemcpy(deviceLook, &hostLook, sizeof(vec4), cudaMemcpyHostToDevice) );
+    gpuErrorCheck( cudaMemcpy(deviceUp, &hostUp, sizeof(vec4), cudaMemcpyHostToDevice) );
+
 
     
 }
@@ -70,6 +84,11 @@ Raymarcher::~Raymarcher() {
 
     gpuErrorCheck( cudaFree(deviceViewPlaneWidth) );
     gpuErrorCheck( cudaFree(deviceViewPlaneHeight) );
+
+    gpuErrorCheck( cudaFree(devicePos) );
+    gpuErrorCheck( cudaFree(deviceLook) );
+    gpuErrorCheck( cudaFree(deviceUp) );
+
     gpuErrorCheck( cudaGraphicsUnmapResources(1, &cudaPboResource, 0) );
     gpuErrorCheck( cudaGraphicsUnregisterResource(cudaPboResource) );
     std::cout << "Raymarcher Cleaned Up!" << std::endl;  
@@ -98,6 +117,7 @@ void Raymarcher::allocateDeviceRenderData() {
 
 
     //copy lights
+    #pragma omp parallel for
     for (int i = 0; i < hostRenderData.numLights; ++i) {
         const SceneLightData& cpuLight = scene.metaData.lights[i];
         hostLights[i].id = cpuLight.id;
@@ -112,6 +132,7 @@ void Raymarcher::allocateDeviceRenderData() {
 
 
     //copy shapes
+    #pragma omp parallel for
     for (int i = 0; i < hostRenderData.numShapes; ++i) {
         const RenderShapeData cpuShape = scene.metaData.shapes[i];
         const SceneMaterial& cpuMaterial = cpuShape.primitive.material;
@@ -217,6 +238,23 @@ void Raymarcher::run() {
 
 void Raymarcher::render() {
 
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+    cudaEventRecord(start);
+    cudaMemset(deviceImageData, 0, scene.c_width * scene.c_height * sizeof(RGBA));
+
+    const float zoomAmount = 0.009f;
+
+    updateCameraKernel<<<1, 1>>>(
+        devicePos,
+        deviceLook,
+        deviceUp,
+        deviceInverseViewMat,
+        zoomAmount
+    );
+
     int width = scene.c_width, height = scene.c_height;
     dim3 blockSize(32,32);
     dim3 gridSize(
@@ -224,14 +262,13 @@ void Raymarcher::render() {
         (height + blockSize.y - 1) / blockSize.y
     ); // number of blocks
 
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
-    cudaEventRecord(start);
+    
     renderKernel<<<gridSize,blockSize>>>(
         deviceImageData,
         deviceRenderData,
+        devicePos,
+        deviceLook, 
+        deviceUp,
         deviceInverseViewMat,
         deviceWidth,
         deviceHeight,

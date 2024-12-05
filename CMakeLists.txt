@@ -35,10 +35,15 @@ find_package(OpenGL REQUIRED)
 find_package(glfw3 3.4 REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(CUDA REQUIRED)
+find_package(OpenMP REQUIRED)
 
 
 # Set CUDA specific compile options to include GLEW
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} "-I${GLEW_INCLUDE_DIR}")
+
+# Enable OpenMP
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 
 
 
