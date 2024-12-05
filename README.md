@@ -17,9 +17,11 @@ cuRT is a GPU-accelerated ray tracer written in CUDA and OpenGL.
 ## Getting Started
 
 1. Clone the repository and initialize submodules:
-git clone [your-repo-url]
+
+```
 cd raymarcher
 git submodule update --init --recursive  # Required for Eigen dependency
+```
 
 2. Configure CUDA Architecture:
   - Open `CMakeLists.txt`
@@ -34,10 +36,12 @@ git submodule update --init --recursive  # Required for Eigen dependency
   - Also update the `CMAKE_INSTALL_RPATH` if needed
 
 4. Build the project:
+```
 mkdir build
 cd build
 cmake ..
 make
+```
 
 ## Running the Raymarcher
 
