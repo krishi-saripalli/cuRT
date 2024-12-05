@@ -31,8 +31,10 @@ git submodule update --init --recursive  # Required for Eigen dependency
 
 3. GLEW Configuration:
   - Current paths are hardcoded for a specific system. Update these paths to match your GLEW installation:
+  ```
   set(GLEW_INCLUDE_DIR "path/to/your/glew/include")
   set(GLEW_LIBRARY "path/to/your/glew/lib64/libGLEW.so")
+  ```
   - Also update the `CMAKE_INSTALL_RPATH` if needed
 
 4. Build the project:
