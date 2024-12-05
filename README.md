@@ -45,7 +45,7 @@ cmake ..
 make
 ```
 
-## Running the Raymarcher
+## Running cuRT
 
 The program takes a scene file as input and must be run with an absolute path:
 
