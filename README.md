@@ -49,7 +49,7 @@ The program takes a scene file as input and must be run with an absolute path:
 
 ## Scene File Format
 
-cuRT uses a JSON scene format developed by the Brown's [CS1230](https://cs1230.graphics/) course staff to define the 3D environment. Below is a detailed breakdown of the format:
+cuRT uses a JSON format developed by Brown's [CS1230](https://cs1230.graphics/) course staff to define the 3D environment. Below is a detailed breakdown of the format:
 
 The root object must contain:
 - `name`: String identifier for the scene
@@ -69,7 +69,7 @@ Controls scene-wide lighting parameters:
 ```
 
 ### Camera Data
-```
+```json
 "cameraData": {
     "position": [-6.0, 4.0, 4.0],  // Camera position [x, y, z]
     "up": [0.0, 1.0, 0.0],         // Up vector [x, y, z]
@@ -77,10 +77,11 @@ Controls scene-wide lighting parameters:
     "heightAngle": 30.0            // Vertical field of view in degrees
 }
 ```
+
 ### Light Data
 Currently supports point, spot and directional lights
 
-```
+```json
 {
     "type": "point",
     "color": [r, g, b],               // RGB values (0-1)
@@ -90,7 +91,8 @@ Currently supports point, spot and directional lights
 
 ### Primitive Data
 Support for sphere, cube, cone and cylinder primitives. Meshes are in progress
-```
+
+```json
 {
     "type": "sphere",              // or "cube", "cylinder", "cone"
     "diffuse": [r, g, b],         // RGB diffuse color (0-1)
@@ -112,3 +114,9 @@ Support for sphere, cube, cone and cylinder primitives. Meshes are in progress
 - Uses CUDA separable compilation
 - OpenMP is enabled for CPU parallel processing
 - Includes debug flags for CUDA (-G -g)
+
+## TODOs
+
+- [ ] Support Triangle Meshes
+- [ ] Remove main render kernel in favor of a wavefront approach based on [this](https://research.nvidia.com/sites/default/files/pubs/2013-07_Megakernels-Considered-Harmful/laine2013hpg_paper.pdf) paper 
+- [ ] Add BVH support
