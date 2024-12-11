@@ -47,10 +47,10 @@ make
 
 ## Running cuRT
 
-The program takes a scene file as input and must be run with an absolute path:
+The program takes a config file (which can be edited to change the scene and image dimension) as input and must be run with an absolute path:
 
 ```
-./raymarcher /absolute/path/to/your/scenefile`
+./raymarcher /absolute/path/to/your/config.json`
 ```
 
 ## Scene File Format
