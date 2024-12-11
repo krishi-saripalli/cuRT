@@ -7,6 +7,7 @@
 #include "../window/window.h"
 #include "../kernel/cudautils.cuh"
 #include "../kernel/renderdata.cuh"
+#include "../kernel/render.cuh"
 #include "../kernel/shape.cuh"
 
 #include <cuda_gl_interop.h>
@@ -60,6 +61,8 @@ class Raymarcher {
         int* deviceHeight;
         float* deviceViewPlaneWidth;
         float* deviceViewPlaneHeight;
+        Ray* deviceRays;
+
 
         vec4 *devicePos, *deviceLook, *deviceUp;
 

@@ -12,18 +12,28 @@
 #include "hit.cuh"
 #include "../utils/rgba.cuh"
 
+struct Ray {
+    vec4 origin;    
+    vec4 direction;
+};
+
+__global__ void generateRaysKernel(
+    Ray* rays,
+    const vec4* cameraPos,     
+    const vec4* cameraLook,    
+    const vec4* cameraUp,      
+    const int* width,
+    const int* height,
+    const float* viewPlaneWidth,
+    const float* viewPlaneHeight
+);
 
  __global__ void renderKernel(
-   RGBA* imageData,
-   const GPURenderData* renderData,
-   const vec4* cameraPos,     
-   const vec4* cameraLook,    
-   const vec4* cameraUp,      
-   const mat4* inverseViewMatrix, 
-   const int* width,
-   const int* height,
-   const float* viewPlaneWidth,
-   const float* viewPlaneHeight
+    RGBA* imageData,
+    const GPURenderData* renderData,
+    const Ray* rays,
+    const int* width,
+    const int* height
 );
 
 __global__ void updateCameraKernel(

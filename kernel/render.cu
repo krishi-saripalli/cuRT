@@ -68,49 +68,66 @@ __device__ RGBA traceRay(const GPURenderData& renderData, const RGBA& originalCo
     return originalColor;
 }
 
+__global__ void generateRaysKernel(
+    Ray* rays,
+    const vec4* cameraPos,     
+    const vec4* cameraLook,    
+    const vec4* cameraUp,      
+    const int* width,
+    const int* height,
+    const float* viewPlaneWidth,
+    const float* viewPlaneHeight
+) {
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    
+    if (col < *width && row < *height) {
+        const int w = *width, h = *height;
+        const float vw = *viewPlaneWidth, vh = *viewPlaneHeight;
+        
+        // NDC coordinates for pixel center
+        float x = ((col + 0.5f)/float(w)) - 0.5f;
+        float y = ((row + 0.5f)/float(h)) - 0.5f;
+
+        vec3 pos3(cameraPos->x(), cameraPos->y(), cameraPos->z());
+        vec3 look3(cameraLook->x(), cameraLook->y(), cameraLook->z());
+        vec3 up3(cameraUp->x(), cameraUp->y(), cameraUp->z());
+
+        vec3 w3 = -look3;
+        w3.normalize();
+        vec3 u3 = cross(up3, w3);
+        u3.normalize();
+        vec3 v3 = cross(w3, u3);
+        v3.normalize();
+
+        // calculate ray direction and convert to vec4
+        vec3 dir3 = u3 * (vw * x) + v3 * (vh * y) - w3;
+        dir3.normalize();
+        vec4 direction(dir3.x(), dir3.y(), dir3.z(), 0.0f);
+
+        int index = row * w + col;
+        rays[index].origin = *cameraPos;
+        rays[index].direction = direction;
+    }
+}
+
 
  __global__ void renderKernel(
-   RGBA* imageData,
-   const GPURenderData* renderData,
-   const vec4* cameraPos,     
-   const vec4* cameraLook,    
-   const vec4* cameraUp,      
-   const mat4* inverseViewMatrix, 
-   const int* width,
-   const int* height,
-   const float* viewPlaneWidth,
-   const float* viewPlaneHeight
+    RGBA* imageData,
+    const GPURenderData* renderData,
+    const Ray* rays,
+    const int* width,
+    const int* height
 ) {
-   int col = blockIdx.x * blockDim.x + threadIdx.x;
-   int row = blockIdx.y * blockDim.y + threadIdx.y;
-   
-   if (col < *width && row < *height) {
-       const int w = *width, h = *height;
-       const float vw = *viewPlaneWidth, vh = *viewPlaneHeight;
-       
-       // NDC coordinates for pixel center
-       float x = ((col + 0.5f)/float(w)) - 0.5f;
-       float y = ((row + 0.5f)/float(h)) - 0.5f;
-
-       vec3 pos3(cameraPos->x(), cameraPos->y(), cameraPos->z());
-       vec3 look3(cameraLook->x(), cameraLook->y(), cameraLook->z());
-       vec3 up3(cameraUp->x(), cameraUp->y(), cameraUp->z());
-
-       vec3 w3 = -look3;
-       w3.normalize();
-       vec3 u3 = cross(up3, w3);
-       u3.normalize();
-       vec3 v3 = cross(w3, u3);
-       v3.normalize();
-
-       // calculate ray direction and convert to vec4
-       vec3 dir3 = u3 * (vw * x) + v3 * (vh * y) - w3;
-       dir3.normalize();
-       vec4 direction(dir3.x(), dir3.y(), dir3.z(), 0.0f);
-
-       int index = row * w + col;
-       imageData[index] = traceRay(*renderData, imageData[index], *cameraPos, direction);
-   }
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    
+    if (col < *width && row < *height) {
+        const int w = *width;
+        int index = row * w + col;
+        const Ray& ray = rays[index];
+        imageData[index] = traceRay(*renderData, imageData[index], ray.origin, ray.direction);
+    }
 }
 
 __global__ void updateCameraKernel(

@@ -13,6 +13,9 @@
 #include "../kernel/distance.cuh"
 #include <cuda_gl_interop.h>
 
+// For basic stats
+// DISPLAY=:0 nsys profile -t cuda --stats=true  --cuda-memory-usage=true --gpu-metrics-device=all --gpu-metrics-set=base ./raymarcher /users/ksaripal/projects/raymarcher/config.json
+
 Raymarcher::Raymarcher(std::unique_ptr<Window> w, const Scene& s, GLuint p) : window(std::move(w)), scene(s)  {
 
     //register PBO
@@ -39,6 +42,9 @@ Raymarcher::Raymarcher(std::unique_ptr<Window> w, const Scene& s, GLuint p) : wi
 
     //allocate GPU shapes on the device
     allocateDeviceRenderData();
+
+    //allocate rays on the device
+    gpuErrorCheck( cudaMalloc(&deviceRays, width * height * sizeof(Ray)) );
 
     // // allocate inverse view matrix on the device
     mat4 hostInverseViewMat = mat4(inverseViewMatrix.data());
@@ -75,6 +81,7 @@ Raymarcher::Raymarcher(std::unique_ptr<Window> w, const Scene& s, GLuint p) : wi
 }
 
 Raymarcher::~Raymarcher() {
+    gpuErrorCheck( cudaFree(deviceRays) );
     gpuErrorCheck( cudaFree(deviceLights) );
     gpuErrorCheck( cudaFree(deviceShapes) );
     gpuErrorCheck( cudaFree(deviceRenderData) );
@@ -199,6 +206,8 @@ void Raymarcher::run() {
 
     glViewport(0, 0, scene.c_width, scene.c_height);
 
+    int frameNumber = 0;
+
     while(!(*window).shouldClose()) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
@@ -210,6 +219,10 @@ void Raymarcher::run() {
 
         //TODO: add some conditional logic (only when event handlers receive something)
         render();
+        frameNumber += 1;
+        if (frameNumber == 1000) {
+            std::exit(0);
+        }
 
 
         glUseProgram(shaderProgram);
@@ -245,8 +258,8 @@ void Raymarcher::render() {
     cudaEventRecord(start);
     cudaMemset(deviceImageData, 0, scene.c_width * scene.c_height * sizeof(RGBA));
 
-    const float zoomAmount = 0.009f;
-
+    // const float zoomAmount = -0.009f;
+    const float zoomAmount = 0.f;
     updateCameraKernel<<<1, 1>>>(
         devicePos,
         deviceLook,
@@ -263,17 +276,23 @@ void Raymarcher::render() {
     ); // number of blocks
 
     
-    renderKernel<<<gridSize,blockSize>>>(
-        deviceImageData,
-        deviceRenderData,
+    generateRaysKernel<<<gridSize,blockSize>>>(
+        deviceRays,
         devicePos,
         deviceLook, 
         deviceUp,
-        deviceInverseViewMat,
         deviceWidth,
         deviceHeight,
         deviceViewPlaneWidth,
         deviceViewPlaneHeight
+    );
+
+    renderKernel<<<gridSize,blockSize>>>(
+        deviceImageData,
+        deviceRenderData,
+        deviceRays,
+        deviceWidth,
+        deviceHeight
     );
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -289,7 +308,7 @@ void Raymarcher::render() {
     
 
     std::cout << "Frame took " << milliseconds << std::endl;
-
+    
     
     // update texture from PBO
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
