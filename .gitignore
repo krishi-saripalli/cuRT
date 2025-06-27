@@ -1,3 +1,2 @@
-notes.md
-/build
-/.vscode
+.DS_STORE
+.gitmodules
